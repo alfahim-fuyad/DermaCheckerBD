@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ info.short_name }} ({{ info.code|upper }}) · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <nav aria-label="breadcrumb" data-i18n-aria="aria.breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'education:index' %}" data-i18n="edu.breadcrumb_library">Skin health library</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ info.code|upper }}</li>
+      </ol>
+    </nav>
+
+    <span class="app-badge mb-3">
+      <i data-lucide="book-open" style="width:14px;height:14px;"></i>
+      <span data-i18n-category="{{ info.category }}">{% if info.category == 'pre malignant' %}Pre-malignant{% else %}{{ info.category|title }}{% endif %}</span>
+    </span>
+    <h1 class="mb-1" data-i18n="class-name.{{ info.code }}">{{ info.short_name }}</h1>
+    <p class="text-muted mb-1"><code>{{ info.code|upper }}</code> · {{ info.name }}</p>
+    <p class="text-muted mb-4" lang="bn">{{ info.bangla_name }}</p>
+
+    <figure class="education-detail-figure education-class-card--{{ info.category|slugify }}">
+      <div class="education-detail-image">
+        <img
+          src="{% static 'images/classes/' %}{{ info.code }}.png"
+          alt="Example image for {{ info.short_name }}"
+          decoding="async">
+      </div>
+      <figcaption>
+        <strong data-i18n="class-name.{{ info.code }}">{{ info.short_name }}</strong>
+        <span class="d-block mt-1" data-i18n="edu.class_detail_image_caption">Example only — this image cannot confirm a diagnosis.</span>
+      </figcaption>
+    </figure>
+
+    <div class="result-banner {{ info.category|slugify }} mb-4">
+      <div class="banner-icon">
+        <i data-lucide="{% if info.category == 'malignant' %}alert-octagon{% elif info.category == 'pre malignant' %}alert-triangle{% else %}shield-check{% endif %}"></i>
+      </div>
+      <div>
+        <div class="banner-title"><span data-i18n-category="{{ info.category }}">{% if info.category == 'pre malignant' %}Pre-malignant{% else %}{{ info.category|title }}{% endif %}</span> <span data-i18n="edu.lesion_class">lesion class</span></div>
+        <div class="banner-sub">
+          {% if info.category == 'malignant' %}
+            <span data-i18n="edu.malignant_desc">This class represents a malignant (cancerous) condition that requires professional evaluation.</span>
+          {% elif info.category == 'pre malignant' %}
+            <span data-i18n="edu.pre_malignant_desc">This class represents a pre-cancerous condition that may progress if untreated.</span>
+          {% else %}
+            <span data-i18n="edu.benign_desc">This class is generally benign (non-cancerous), but a dermatologist should confirm.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="app-card mb-4">
+          <h2 class="h5 mb-3"><i data-lucide="file-text" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.overview">Overview</span></h2>
+          <p>{{ info.overview }}</p>
+        </div>
+
+        <div class="app-card mb-4">
+          <h2 class="h5 mb-3"><i data-lucide="eye" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.appearance">Typical appearance</span></h2>
+          <p>{{ info.appearance }}</p>
+        </div>
+
+        <div class="app-card mb-4">
+          <h2 class="h5 mb-3"><i data-lucide="alert-circle" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.symptoms">Common symptoms &amp; warning signs</span></h2>
+          <p>{{ info.symptoms }}</p>
+        </div>
+
+        <div class="app-card mb-4">
+          <h2 class="h5 mb-3"><i data-lucide="heart" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.care">Skin care &amp; sun protection</span></h2>
+          <p>{{ info.care }}</p>
+        </div>
+
+        <div class="app-card mb-4">
+          <h2 class="h5 mb-3"><i data-lucide="stethoscope" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.when_doctor">When to see a doctor</span></h2>
+          <p>{{ info.when_to_see_doctor }}</p>
+        </div>
+
+        <div class="app-card mb-4" lang="bn">
+          <h2 class="h5 mb-3"><i data-lucide="languages" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.bangla_summary">সংক্ষিপ্ত বাংলা সারাংশ</span></h2>
+          <p>{{ info.bangla_summary }}</p>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="app-card mb-4">
+          <h2 class="h6 mb-3" data-i18n="edu.all_classes">All HAM10000 classes</h2>
+          <ul class="list-unstyled small mb-0">
+            {% for c in all_classes %}
+              <li class="border-bottom py-2">
+                <a href="{% url 'education:detail' c.code %}" class="d-flex justify-content-between align-items-center text-decoration-none {% if c.code == info.code %}fw-bold{% endif %}">
+                  <span><code>{{ c.code|upper }}</code> <span data-i18n="class-name.{{ c.code }}">{{ c.short_name }}</span></span>
+                  {% if c.code == info.code %}<i data-lucide="chevron-right" style="width:14px;height:14px;"></i>{% endif %}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="app-card mb-4">
+          <h2 class="h6 mb-3" data-i18n="edu.references">References</h2>
+          <ul class="list-unstyled small mb-0">
+            {% for label, url in info.references %}
+              <li class="mb-2">
+                <i data-lucide="external-link" style="width:12px;height:12px;" class="me-1 text-muted"></i>
+                <a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="medical-disclaimer" data-i18n="edu.reminder">
+          <strong>Reminder:</strong> this page is general educational
+          information. A prediction from this website does not confirm you
+          have this condition. Consult a dermatologist for any concerning
+          lesion.
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5 d-flex flex-wrap gap-2">
+      <a href="{% url 'education:index' %}" class="btn app-btn-outline btn-sm">
+        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> <span data-i18n="edu.all_classes_btn">All classes</span>
+      </a>
+      <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary btn-sm">
+        <i data-lucide="scan-search" style="width:14px;height:14px;"></i> <span data-i18n="edu.analyze_image">Analyze an image</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

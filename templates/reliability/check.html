@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prediction Reliability Check · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="activity" style="width:14px;height:14px;"></i> <span data-i18n="rel.eyebrow">AI Reliability Check</span></span>
+    <h1 class="mb-2" data-i18n="rel.title">Prediction reliability check</h1>
+    <p class="text-muted" data-i18n="rel.subtitle">Compare predictions across mildly modified versions of your image. Stability ≠ correctness.</p>
+    <hr class="my-4">
+
+    {% if error %}
+      <div class="medical-disclaimer mb-4">
+        <strong><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-2px;"></i> <span data-i18n="common.upload_rejected">Upload rejected</span></strong>
+        <p class="mb-0" data-i18n-server>{{ error }}</p>
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="app-card">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-area" id="reliabilityDropZone" tabindex="0" role="group" aria-label="Image upload area" data-i18n-aria="aria.image_upload_area">
+              <div data-upload-empty>
+                <div class="upload-icon"><i data-lucide="activity"></i></div>
+                <p class="fw-semibold mb-1" data-i18n="rel.drop_text">Drag &amp; drop an image</p>
+                <p class="upload-hint mb-0" data-i18n="predict.drop_hint">JPG, PNG, WEBP · max 10 MB</p>
+              </div>
+              <div class="upload-selected" data-upload-selected hidden>
+                <div class="upload-inline-preview"><img data-upload-preview alt="Selected image preview"></div>
+                <div class="upload-file-details">
+                  <span class="upload-status" data-upload-status role="status"></span>
+                  <strong class="upload-file-name" data-upload-filename></strong>
+                  <div class="upload-actions">
+                    <button type="button" class="btn app-btn-outline-primary btn-sm" data-upload-replace>
+                      <i data-lucide="refresh-cw" aria-hidden="true"></i><span data-i18n="upload.replace">Replace</span>
+                    </button>
+                    <button type="button" class="btn app-btn-outline-danger btn-sm" data-upload-remove>
+                      <i data-lucide="x" aria-hidden="true"></i><span data-i18n="upload.remove">Remove</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p class="upload-error mb-0" data-upload-error role="alert" hidden></p>
+              <input type="file" name="image" id="reliabilityImageInput" accept="image/jpeg,image/png,image/webp" hidden>
+            </div>
+            <button type="submit" class="btn app-btn-primary w-100 mt-3" id="reliabilitySubmit" disabled>
+              <i data-lucide="zap" style="width:16px;height:16px;"></i> <span data-i18n="rel.run_check">Run reliability check</span>
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="app-card">
+          <h3 class="h6" data-i18n="rel.what_checks">What this checks</h3>
+          <p class="small text-muted" data-i18n="rel.explain_1">We apply mild image transforms (brightness ±15%, contrast ±15%, 5° rotation) and run the prediction on each.</p>
+          <p class="small text-muted" data-i18n="rel.explain_2">If the top class flips on some transforms, the prediction is unstable.</p>
+          <div class="medical-disclaimer" data-i18n="rel.disclaimer">A high agreement score means stability — not that the prediction is medically correct.</div>
+        </div>
+      </div>
+    </div>
+
+    {% if report %}
+      <div class="app-card mt-4">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-block {{ report.stable|yesno:'success,warning' }}">
+              <div class="stat-value">{{ report.agreement_pct|floatformat:0 }}%</div>
+              <div class="stat-label" data-i18n="rel.stability">Stability (agreement)</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-block">
+              <div class="stat-value">{{ report.original.confidence|floatformat:2 }}</div>
+              <div class="stat-label" data-i18n="rel.original_confidence">Original confidence</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-block {{ report.flipped_classes|length|yesno:'warning,success' }}">
+              <div class="stat-value">{{ report.flipped_classes|length }}</div>
+              <div class="stat-label" data-i18n="rel.flipped_variants">Flipped variants</div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <h3 class="h6" data-i18n="rel.original_prediction">Original prediction</h3>
+        <div class="result-banner {{ report.original.category|slugify|default:'unknown' }}">
+          <div class="banner-icon">
+            {% if report.original.category == "malignant" %}
+              <i data-lucide="alert-octagon" aria-hidden="true"></i>
+            {% elif report.original.category == "pre malignant" %}
+              <i data-lucide="alert-triangle" aria-hidden="true"></i>
+            {% else %}
+              <i data-lucide="scan-search" aria-hidden="true"></i>
+            {% endif %}
+          </div>
+          <div>
+            <div class="banner-title">{{ report.original.predicted_class|upper }} — {{ report.original.predicted_name }}</div>
+            <div class="banner-sub"><span data-i18n="rel.category">Category:</span> {{ report.original.category|title }} · <span data-i18n="rel.confidence">Confidence:</span> {{ report.original.confidence|floatformat:2 }}</div>
+          </div>
+        </div>
+        {% if report.original.category == "malignant" or report.original.category == "pre malignant" %}
+          <div class="report-result-warning mt-3" role="alert">
+            <i data-lucide="alert-triangle" aria-hidden="true"></i>
+            <div>
+              <strong data-i18n="result.professional_review_title">Professional review recommended</strong>
+              <p class="mb-0" data-i18n="result.professional_review_body">This experimental model flagged a concerning category. It is not a diagnosis; please arrange an assessment with a qualified dermatologist.</p>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if image_data_url %}
+          <div class="mt-3 text-center">
+            <img src="{{ image_data_url }}" alt="Uploaded skin image preview"
+                 style="max-width: 100%; max-height: 320px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+          </div>
+        {% endif %}
+
+        <h3 class="h6 mt-4" data-i18n="rel.transform_results">Transform results</h3>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th data-i18n="rel.transform">Transform</th><th data-i18n="rel.predicted_class">Predicted class</th><th data-i18n="rel.confidence">Confidence</th><th data-i18n="rel.matches">Matches?</th></tr>
+            </thead>
+            <tbody>
+              <tr class="table-active">
+                <td data-i18n="rel.original">Original</td>
+                <td><code>{{ report.original.predicted_class }}</code></td>
+                <td>{{ report.original.confidence|floatformat:3 }}</td>
+                <td>—</td>
+              </tr>
+              {% for v in report.variants %}
+                <tr>
+                  <td>{{ v.description }}</td>
+                  <td><code>{{ v.prediction.predicted_class }}</code></td>
+                  <td>{{ v.prediction.confidence|floatformat:3 }}</td>
+                  <td>
+                    {% if v.prediction.predicted_class == report.original.predicted_class %}
+                      <span class="badge bg-success" data-i18n="common.yes">Yes</span>
+                    {% else %}
+                      <span class="badge bg-danger" data-i18n="common.no">No</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if not report.stable %}
+          <div class="medical-disclaimer mt-3" data-i18n="rel.unstable_warning">
+            Unstable prediction: the top class changed on at least one mild transform. Treat this prediction with extra skepticism and seek professional review.
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/image-upload.js' %}" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var submit = document.getElementById('reliabilitySubmit');
+    window.setupImageUpload({
+      dropId: 'reliabilityDropZone',
+      inputId: 'reliabilityImageInput',
+      onFile: function (file) { if (submit) submit.disabled = !file; }
+    });
+  });
+</script>
+{% endblock %}

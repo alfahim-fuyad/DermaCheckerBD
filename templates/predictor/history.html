@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prediction History · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 60rem;">
+    <span class="app-badge mb-3"><i data-lucide="history" style="width:14px;height:14px;"></i> <span data-i18n="history.eyebrow">Your records</span></span>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+      <div>
+        <h1 class="mb-1" data-i18n="history.title">Prediction history</h1>
+        <p class="text-muted mb-0">
+          {% if user.is_authenticated %}
+            <span data-i18n="history.authed_sub" data-i18n-param-user-username="{{ user.username }}">All predictions made while signed in as {{ user.username }}.</span>
+          {% else %}
+            <span data-i18n="history.anon_sub">Predictions made in this browser session. Sign in to keep them across devices.</span>
+          {% endif %}
+          <span class="badge bg-light text-muted ms-2">{{ total_matches }} {% if total_matches == 1 %}<span data-i18n="history.match">match</span>{% else %}<span data-i18n="history.matches">matches</span>{% endif %}</span>
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        {% if total_matches %}
+          <a href="{% url 'predictor:clear_history' %}" class="btn app-btn-outline-danger btn-sm d-inline-flex align-items-center justify-content-center gap-2 text-center history-clear-button">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+            <span data-i18n="history.clear_all">Clear all</span>
+          </a>
+        {% endif %}
+        <a href="?{% if filters.q %}q={{ filters.q }}{% endif %}{% if filters.class %}&class={{ filters.class }}{% endif %}{% if filters.since %}&since={{ filters.since }}{% endif %}{% if filters.until %}&until={{ filters.until }}{% endif %}&export=json"
+           class="btn app-btn-outline btn-sm">
+          <i data-lucide="download" style="width:14px;height:14px;"></i> <span data-i18n="history.export_json">Export JSON</span>
+        </a>
+        <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary btn-sm">
+          <i data-lucide="zap" style="width:14px;height:14px;"></i> <span data-i18n="history.new_scan">New scan</span>
+        </a>
+      </div>
+    </div>
+    <hr class="my-4">
+
+    <!-- Filter form -->
+    <form method="get" class="app-card mb-4" aria-label="Filter history" data-i18n-aria="aria.filter_history">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="app-form-label" for="filter-q" data-i18n="history.search_label">Search</label>
+          <input type="text" id="filter-q" name="q" class="form-control app-form-control"
+                 placeholder="Class, name, reference ID…" data-i18n-ph="history.search_placeholder"
+                 value="{{ filters.q }}">
+        </div>
+        <div class="col-md-3">
+          <label class="app-form-label" for="filter-class" data-i18n="history.class_label">Class</label>
+          <select id="filter-class" name="class" class="form-select app-form-control">
+            <option value="" data-i18n="history.all_classes">All classes</option>
+            {% for c in class_filter_options %}
+              <option value="{{ c.code }}" {% if filters.class == c.code %}selected{% endif %}>
+                {{ c.code|upper }} — <span data-i18n="class-name.{{ c.code }}">{{ c.name }}</span>
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="app-form-label" for="filter-since" data-i18n="history.from">From</label>
+          <input type="date" id="filter-since" name="since" class="form-control app-form-control"
+                 value="{{ filters.since }}">
+        </div>
+        <div class="col-md-2">
+          <label class="app-form-label" for="filter-until" data-i18n="history.to">To</label>
+          <input type="date" id="filter-until" name="until" class="form-control app-form-control"
+                 value="{{ filters.until }}">
+        </div>
+        <div class="col-md-1 d-grid">
+          <button type="submit" class="btn app-btn-primary btn-sm" aria-label="Apply filters" data-i18n-aria="aria.apply_filters">
+            <i data-lucide="filter" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>
+      {% if filters.q or filters.class or filters.since or filters.until %}
+        <div class="mt-3 d-flex gap-2 align-items-center">
+          <a href="{% url 'predictor:history' %}" class="small text-decoration-none">
+            <i data-lucide="x" style="width:12px;height:12px;"></i> <span data-i18n="history.clear_filters">Clear filters</span>
+          </a>
+        </div>
+      {% endif %}
+    </form>
+
+    {% if records %}
+      <div class="list-group">
+        {% for r in records %}
+          <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <a href="{% url 'predictor:result' r.reference_id %}" class="d-flex flex-grow-1 align-items-center gap-3 text-decoration-none">
+              {% if r.image %}
+                <img src="{{ r.image.url }}" alt="Thumbnail for prediction {{ r.reference_id }}"
+                     style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+              {% endif %}
+              <div>
+                <div class="fw-semibold">{{ r.image_name|default:r.patient_name|default:"Patient image" }}</div>
+                <div class="fw-semibold">
+                  <span class="badge class-code-badge me-1 {% if r.category == 'malignant' %}class-code-badge--malignant{% elif r.category == 'pre malignant' %}class-code-badge--premalignant{% elif r.category == 'benign' %}class-code-badge--benign{% endif %}">{{ r.predicted_class|upper }}</span>
+                  <span data-i18n="class-name.{{ r.predicted_class }}">{{ r.predicted_name }}</span>
+                </div>
+                <div class="small text-muted">{{ r.created_at|date:"Y-m-d H:i" }} · ref {{ r.reference_id }}</div>
+              </div>
+            </a>
+            <div class="text-end">
+              <span class="badge rounded-pill {% if r.category == 'malignant' %}bg-danger{% elif r.category == 'pre malignant' %}bg-warning text-dark{% else %}bg-success{% endif %} mb-1" data-i18n-category="{{ r.category }}">{{ r.category|title }}</span>
+              <div class="small text-muted">conf {{ r.confidence_percent|floatformat:1 }}%</div>
+            </div>
+            <a href="{% url 'predictor:delete' r.reference_id %}" class="btn app-btn-outline-danger btn-sm"
+               aria-label="Delete prediction {{ r.reference_id }}" data-i18n-aria="history.delete_prediction_aria">
+              <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+              <span data-i18n="history.delete">Delete</span>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon"><i data-lucide="inbox"></i></div>
+        <p class="fw-semibold" data-i18n="history.no_match">No matching predictions.</p>
+        <p class="small">
+          {% if filters.q or filters.class or filters.since or filters.until %}
+            <span data-i18n="history.try_clearing">Try clearing your filters.</span>
+          {% else %}
+            <span data-i18n="history.empty">Upload an image to get started.</span>
+          {% endif %}
+        </p>
+        <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary mt-2">
+          <i data-lucide="zap" style="width:16px;height:16px;"></i> <span data-i18n="history.start_scan">Start a scan</span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

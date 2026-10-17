@@ -1,0 +1,26 @@
+<div class="mb-3">
+  <label class="app-form-label" for="qualityImageName" data-i18n="pg.image_name">Image name</label>
+  <input class="form-control app-form-control" type="text" id="qualityImageName"
+         value="{{ image_name }}" maxlength="255" autocomplete="off">
+  <div class="form-text" data-i18n="pg.image_name_help">Edit the label used for this image and its prediction record.</div>
+</div>
+<div class="d-grid gap-2 mt-3">
+  <a class="btn app-btn-outline-primary" id="downloadQualityImage"
+     href="{{ customizer_data_url|default:'#' }}" download="skin-image.jpg">
+    <i data-lucide="download" aria-hidden="true"></i> <span data-i18n="pg.download_image">Download image</span>
+  </a>
+  <button type="button" class="btn app-btn-primary" id="runPredictionButton"
+          data-image-url="{{ prediction_data_url }}"
+          data-customizer-url="{{ customizer_data_url|default:'' }}"
+          data-file-name="{{ uploaded_name }}"
+          data-enhanced="{% if enhancement_report and enhancement_report.applied %}true{% else %}false{% endif %}">
+    <i data-lucide="zap" aria-hidden="true"></i> <span id="runPredictionLabel" data-i18n="pg.run_prediction">Run prediction on this image</span>
+  </button>
+</div>
+<div id="predictionTransferError" class="medical-disclaimer mt-3 mb-0" role="alert" hidden data-i18n="pg.transfer_error">
+  The image could not be prepared for prediction. Please try uploading it again.
+</div>
+<form method="post" action="{% url 'predictor:upload' %}" enctype="multipart/form-data" id="qualityPredictionForm" hidden>
+  {% csrf_token %}
+  <input type="hidden" name="image_name" id="qualityPredictionName" value="{{ image_name }}">
+</form>

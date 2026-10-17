@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load static crispy_forms_tags %}
+
+{% block title %}Upload Skin Image · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="scan-search" style="width:14px;height:14px;"></i> <span data-i18n="predict.eyebrow">Skin image prediction</span></span>
+    <h1 class="mb-2" data-i18n="predict.title">Upload a skin lesion image</h1>
+    <p class="text-muted" data-i18n="predict.subtitle">This system is developed for educational/research purposes and is not a medical diagnostic tool. The prediction should not be considered a medical diagnosis. Please consult a qualified dermatologist or healthcare professional for proper evaluation.</p>
+    <hr class="my-4">
+
+    {% if error %}
+      <div class="medical-disclaimer mb-4">
+        <p class="mb-1"><strong><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-2px;"></i> <span data-i18n="upload.rejected">Upload rejected</span></strong></p>
+        <p class="mb-1" data-i18n-server>{{ error }}</p>
+        {% if details %}<p class="mb-1 small" data-i18n-server>{{ details }}</p>{% endif %}
+        {% if suggestions %}
+          <ul class="mb-0 small">
+            {% for s in suggestions %}<li data-i18n-server>{{ s }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="app-card">
+          <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+
+            <div class="upload-area" id="dropZone" aria-label="Image upload area" data-i18n-aria="aria.image_upload_area" tabindex="0" role="group">
+              <div data-upload-empty>
+                <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
+                <p class="fw-semibold mb-1" data-i18n="predict.drop_text">Drag &amp; drop a skin lesion image</p>
+                <p class="upload-hint mb-2" data-i18n="predict.drop_hint">or click to browse · JPG, PNG, WEBP · max 10 MB</p>
+                <p class="upload-hint mt-2 mb-0"><i data-lucide="camera" style="width:14px;height:14px;vertical-align:-2px;"></i> <span data-i18n="predict.camera_hint">On mobile, this will offer camera capture.</span></p>
+              </div>
+              <div class="upload-selected" data-upload-selected hidden>
+                <div class="upload-inline-preview"><img data-upload-preview alt="Selected lesion preview"></div>
+                <div class="upload-file-details">
+                  <span class="upload-status" data-upload-status role="status"></span>
+                  <strong class="upload-file-name" data-upload-filename></strong>
+                  <div class="upload-actions">
+                    <button type="button" class="btn app-btn-outline-primary btn-sm" data-upload-replace>
+                      <i data-lucide="refresh-cw" aria-hidden="true"></i><span data-i18n="upload.replace">Replace</span>
+                    </button>
+                    <button type="button" class="btn app-btn-outline-danger btn-sm" data-upload-remove>
+                      <i data-lucide="x" aria-hidden="true"></i><span data-i18n="upload.remove">Remove</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p class="upload-error mb-0" data-upload-error role="alert" hidden></p>
+              <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp" hidden>
+            </div>
+
+            <div class="mt-3">
+              <label class="app-form-label" for="{{ form.image_name.id_for_label }}" data-i18n="predict.image_name">Image name</label>
+              {{ form.image_name }}
+              {% for error in form.image_name.errors %}
+                <div class="text-danger small mt-1" role="alert">{{ error }}</div>
+              {% endfor %}
+              <div class="form-text" data-i18n="predict.image_name_help">Used to label the saved image in your history.</div>
+            </div>
+
+            <div class="privacy-note mt-3">
+              <i data-lucide="lock"></i>
+              <span data-i18n="predict.privacy_note">Image is processed by the Django backend. Not sent to the chatbot API.</span>
+            </div>
+
+            <button type="submit" class="btn app-btn-primary mt-4 w-100" id="submitBtn" disabled>
+              <i data-lucide="activity" style="width:16px;height:16px;"></i>
+              <span id="submitLabel" data-i18n="predict.submit">Check image quality &amp; analyze</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="app-card mb-3">
+          <h3 class="h6" data-i18n="predict.classes_title">Supported lesion categories</h3>
+          <p class="text-muted small mb-2" data-i18n="predict.classes_sub">Predictions include both malignant and benign categories.</p>
+          <ul class="list-unstyled small mb-0">
+            {% for c in classes %}
+              <li class="d-flex justify-content-between border-bottom py-1">
+                <code>{{ c.code }}</code>
+                <span class="text-muted" data-i18n="class-name.{{ c.code }}">{{ c.name }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="medical-disclaimer">
+          <strong data-i18n="upload.important">Important:</strong> a high confidence score does not mean the prediction is medically correct. This system is developed for educational/research purposes and is not a medical diagnostic tool. Consult a qualified dermatologist or healthcare professional for proper evaluation.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Prediction loading overlay — shown when the form is submitted.
+     The browser cannot know the actual backend progress because the
+     upload POST is synchronous; we use an honest indeterminate stepper
+     that advances only through clearly-labelled stages and never
+     claims '100% complete' until the response actually arrives. -->
+{% include "predictor/_prediction_overlay.html" %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/image-upload.js' %}" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var submitBtn = document.getElementById('submitBtn');
+    var uploader = window.setupImageUpload({
+      dropId: 'dropZone',
+      inputId: 'imageInput',
+      formId: 'uploadForm',
+      onFile: function (file) {
+        submitBtn.disabled = !file;
+        var imageName = document.getElementById('id_image_name');
+        if (file && imageName && !imageName.value.trim()) {
+          imageName.value = file.name.replace(/\.[^.]+$/, '');
+        }
+      },
+    });
+    var realInput = document.getElementById('imageInput');
+
+    // Live multi-stage loading overlay. We honestly cannot know the real
+    // backend progress, so we advance the active stage on a timer — but
+    // the overlay is REMOVED the moment the browser actually navigates
+    // away (response received). We never claim "100% complete" ourselves.
+    var form = document.getElementById('uploadForm');
+    var overlay = document.getElementById('predictionOverlay');
+    var stages = document.querySelectorAll('#predictionStages .prediction-stage');
+    var stageTimers = [];
+    var submitted = false;
+
+    function showOverlay() {
+      overlay.hidden = false;
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      var scanImage = document.getElementById('predictionScanImage');
+      var placeholder = document.getElementById('predictionScanPlaceholder');
+      var selectedFile = uploader && uploader.getFile();
+      if (selectedFile && scanImage) {
+        scanImage.src = URL.createObjectURL(selectedFile);
+        scanImage.hidden = false;
+        if (placeholder) placeholder.hidden = true;
+      }
+      // Advance stages on a fixed cadence; each stage stays active
+      // until the next one becomes active. Stage 4 stays active until
+      // the server actually responds (the browser navigates away and
+      // the overlay disappears with the page).
+      var stageDelays = [0, 1500, 3000, 5500];
+      stages.forEach(function (el, i) {
+        if (i === 0) return; // stage 1 already active
+        var t = setTimeout(function () {
+          stages[i - 1].classList.remove('is-active');
+          stages[i - 1].classList.add('is-done');
+          stages[i].classList.add('is-active');
+        }, stageDelays[i]);
+        stageTimers.push(t);
+      });
+    }
+
+    form.addEventListener('submit', function (e) {
+      // Native form submission causes a navigation, so we just show the
+      // overlay now and let the browser take over.
+      if (submitted) { e.preventDefault(); return; }
+      submitted = true;
+      var label = document.getElementById('submitLabel');
+      // Capture the current translated label BEFORE we overwrite it, so we
+      // can restore it (in the user's chosen language) when the timeout
+      // fallback fires. main.js will not re-run after a 60s timer, so a
+      // hard-coded English string here would otherwise leak through the
+      // Bangla UI.
+      var originalLabel = label.getAttribute('data-i18n-original') || label.textContent.trim() || 'Check image quality & analyze';
+      label.textContent = window.DERMA && window.DERMA.t
+        ? window.DERMA.t('predict.processing', 'Processing…')
+        : 'Processing…';
+      submitBtn.disabled = true;
+      showOverlay();
+      // If the response fails to load (network error), unlock after 60s
+      // so the user can try again rather than sit on a frozen overlay.
+      setTimeout(function () {
+        if (submitted) {
+          submitted = false;
+          overlay.hidden = true;
+          overlay.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+          label.textContent = originalLabel;
+          submitBtn.disabled = false;
+          stages.forEach(function (el, i) {
+            el.classList.remove('is-active', 'is-done');
+            if (i === 0) el.classList.add('is-active');
+          });
+          stageTimers.forEach(clearTimeout);
+          stageTimers = [];
+          alert(window.DERMA && window.DERMA.t
+            ? window.DERMA.t('predict.timeout_alert', 'The prediction is taking longer than expected. Please try again.')
+            : 'The prediction is taking longer than expected. Please try again.');
+        }
+      }, 60000);
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+<details class="quality-customizer" id="qualityCustomizer">
+  <summary><i data-lucide="sliders-horizontal" aria-hidden="true"></i> <span data-i18n="pg.customize">Customize image</span></summary>
+  <div class="quality-customizer-controls">
+    <label for="qualityBrightness">
+      <span data-i18n="pg.brightness">Brightness</span>
+      <output id="qualityBrightnessValue" for="qualityBrightness">100%</output>
+    </label>
+    <input id="qualityBrightness" type="range" min="70" max="130" value="100" step="1">
+    <label for="qualityContrast">
+      <span data-i18n="pg.contrast">Contrast</span>
+      <output id="qualityContrastValue" for="qualityContrast">100%</output>
+    </label>
+    <input id="qualityContrast" type="range" min="70" max="130" value="100" step="1">
+    <button type="button" class="btn app-btn-outline-primary btn-sm mt-2" id="resetQualityAdjustments">
+      <i data-lucide="rotate-ccw" aria-hidden="true"></i> <span data-i18n="pg.reset_adjustments">Reset adjustments</span>
+    </button>
+    <p class="small text-muted mb-0 mt-2" data-i18n="pg.customize_note">Adjustments only change brightness and contrast. They do not improve diagnostic accuracy.</p>
+  </div>
+</details>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}About DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="info" style="width:14px;height:14px;"></i> <span data-i18n="about.eyebrow">About the project</span></span>
+    <h1 class="mb-3" data-i18n="about.title">About DermaCheckerBD</h1>
+    <p class="lead text-muted" data-i18n="about.lead">
+      An experimental web app for reviewing skin-lesion photos and organizing follow-up observations. It is not a clinical tool.
+    </p>
+    <hr class="my-4">
+
+    <h2 data-i18n="about.goals">What the project is for</h2>
+    <p data-i18n="about.goals_body">
+      DermaCheckerBD brings photo guidance, experimental image analysis, result
+      comparisons, and follow-up tools together in one place. Its goal is to make
+      the results and their limitations easier to understand, not to provide a
+      diagnosis.
+    </p>
+
+    <h2 class="mt-4" data-i18n="about.offerings">What the app offers</h2>
+    <ul>
+      <li data-i18n="about.offer_photo">Photo guidance with suggestions when an image is blurry, poorly lit, or difficult to frame.</li>
+      <li data-i18n="about.offer_result">An experimental predicted category and confidence score, shown with clear limitations.</li>
+      <li data-i18n="about.offer_compare">Optional comparisons across small photo changes or multiple images; differences are not proof of disease or correctness.</li>
+      <li data-i18n="about.offer_tracker">A private follow-up timeline where signed-in users can organize photos and dates.</li>
+      <li data-i18n="about.offer_doctor_panel">The Doctor Panel lets authorized doctors and administrators review cases, update status, and generate serial reports.</li>
+      <li data-i18n="about.offer_assistant">An assistant that explains terms and app limitations, but does not diagnose or prescribe treatment.</li>
+    </ul>
+
+    <h2 class="mt-4" data-i18n="about.responsible">Responsible use</h2>
+    <p data-i18n="about.responsible_body">
+      This prototype has not been clinically validated. Predictions and
+      confidence scores are unverified and may be wrong. Consistency across
+      checks does not mean a result is medically correct.
+    </p>
+
+    <h2 class="mt-4" data-i18n="about.privacy">Privacy and access</h2>
+    <p data-i18n="about.privacy_body">
+      Follow-up records are private to the signed-in account. Doctor Panel access
+      is limited to authorized doctors and administrators. Uploaded images are
+      not sent to the on-page assistant.
+    </p>
+
+    <div class="medical-disclaimer mt-4" data-i18n="about.disclaimer">
+      <strong>Important:</strong> DermaCheckerBD does not provide medical
+      diagnosis or replace professional care. If you are concerned about a skin
+      lesion, consult a qualified dermatologist.
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Delete case · Doctor Panel{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl">
+    <div class="app-card mx-auto p-4" style="max-width: 640px;">
+      <h1 class="h4 mb-3">Delete this case?</h1>
+      <p>This permanently deletes the case and its saved image. This action cannot be undone.</p>
+      <p><strong>Reference:</strong> {{ record.reference_id }}</p>
+      <p><strong>Patient:</strong> {{ record.patient_name|default:record.image_name|default:"—" }}</p>
+      <div class="d-flex gap-2">
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i data-lucide="x" aria-hidden="true" style="width:16px;height:16px;"></i>
+            Delete permanently
+          </button>
+        </form>
+        <a class="btn app-btn-outline" href="{% url 'doctors:panel' %}">Cancel</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

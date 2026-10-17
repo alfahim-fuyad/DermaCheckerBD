@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Medical Priority Queue · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl">
+    <div class="doctor-panel-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div>
+        <span class="app-badge mb-3"><i data-lucide="clipboard-list" style="width:14px;height:14px;"></i> Doctor workspace</span>
+        <h1 class="mb-2">Medical Priority Queue</h1>
+        <p class="text-muted mb-0">Follow-up workflow only — priority and review status are not diagnoses.</p>
+      </div>
+      <a class="btn app-btn-primary doctor-report-button" href="{% url 'doctors:serial_report' %}{% if query_string %}?{{ query_string }}{% endif %}">
+        <i data-lucide="file-down" style="width:16px;height:16px;"></i>
+        Generate Medical Serial Report
+      </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+      {% for priority in priority_cards %}
+      <div class="col-md-4">
+        <div class="app-card doctor-priority-card h-100">
+          <div class="d-flex justify-content-between gap-2">
+            <strong>{{ priority.label }}</strong>
+            <span class="badge rounded-pill bg-light text-dark">{{ priority.count }}</span>
+          </div>
+          <div class="small text-muted mt-2">
+            {% if priority.key == "p1" %}mel{% elif priority.key == "p2" %}bcc, akiec{% else %}vasc, bkl, df, nv{% endif %}
+            · {{ priority.reason }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <form method="get" class="app-card doctor-filter-card mb-4" aria-label="Filter medical queue">
+      <div class="doctor-filter-heading">
+        <span class="doctor-filter-icon"><i data-lucide="list-filter" aria-hidden="true"></i></span>
+        <div>
+          <h2 class="h6 mb-1">Filter cases</h2>
+          <p class="small text-muted mb-0">Narrow the queue by patient, priority, class, status or date.</p>
+        </div>
+      </div>
+      <div class="row g-3 align-items-end doctor-filter-controls">
+        <div class="col-xl-4 col-md-6">
+          <label class="app-form-label" for="queue-q">Search</label>
+          <input class="form-control app-form-control" id="queue-q" type="search" name="q"
+                 value="{{ filters.q }}" placeholder="Patient, image, class or reference">
+        </div>
+        <div class="col-xl-2 col-md-6">
+          <label class="app-form-label" for="queue-priority">Priority</label>
+          <select class="form-select app-form-control" id="queue-priority" name="priority">
+            <option value="">All priorities</option>
+            {% for priority in priority_cards %}
+              <option value="{{ priority.key }}" {% if filters.priority == priority.key %}selected{% endif %}>{{ priority.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-xl-2 col-md-6">
+          <label class="app-form-label" for="queue-class">Class</label>
+          <select class="form-select app-form-control" id="queue-class" name="class">
+            <option value="">All classes</option>
+            {% for item in class_options %}
+              <option value="{{ item.code }}" {% if filters.class == item.code %}selected{% endif %}>
+                {{ item.code|upper }} — {{ item.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-xl-2 col-md-6">
+          <label class="app-form-label" for="queue-status">Review status</label>
+          <select class="form-select app-form-control" id="queue-status" name="review_status">
+            <option value="">All statuses</option>
+            {% for value, label in review_statuses %}
+              <option value="{{ value }}" {% if filters.review_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-xl-2 col-md-6">
+          <label class="app-form-label" for="queue-sort">Sort</label>
+          <select class="form-select app-form-control" id="queue-sort" name="sort">
+            <option value="submitted" {% if filters.sort == "submitted" %}selected{% endif %}>Submitted</option>
+            <option value="review_date" {% if filters.sort == "review_date" %}selected{% endif %}>Review date</option>
+          </select>
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <label class="app-form-label" for="queue-from">From</label>
+          <input class="form-control app-form-control" id="queue-from" type="date" name="date_from" value="{{ filters.date_from }}">
+        </div>
+        <div class="col-xl-3 col-md-6">
+          <label class="app-form-label" for="queue-to">To</label>
+          <input class="form-control app-form-control" id="queue-to" type="date" name="date_to" value="{{ filters.date_to }}">
+        </div>
+      </div>
+      <div class="doctor-filter-actions">
+        <button type="submit" class="btn app-btn-primary doctor-filter-submit">
+          <i data-lucide="filter" aria-hidden="true"></i><span>Apply filters</span>
+        </button>
+        <a href="{% url 'doctors:panel' %}" class="btn app-btn-outline doctor-filter-clear">Clear filters</a>
+      </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-2 doctor-cases-heading">
+      <h2 class="h5 mb-0">Cases <span class="text-muted fw-normal">({{ page_obj.paginator.count }})</span></h2>
+      <div class="doctor-cases-meta">
+        <span class="doctor-table-scroll-hint small text-muted">
+          <i data-lucide="move-horizontal" aria-hidden="true"></i>
+          Scroll horizontally to view all columns
+        </span>
+        {% if page_obj.paginator.count > 50 %}
+          <span class="small text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if records %}
+      <div class="table-responsive app-card p-0 doctor-table-scroll" role="region" tabindex="0" aria-label="Medical priority queue cases">
+        <table class="table table-hover align-middle mb-0 doctor-queue-table">
+          <thead>
+            <tr>
+              <th scope="col">Serial</th>
+              <th scope="col">Patient name</th>
+              <th scope="col">Phone</th>
+              <th scope="col">Image Label</th>
+              <th scope="col">Sex / age</th>
+              <th scope="col">Class</th>
+              <th scope="col">Confidence</th>
+              <th scope="col">Submitted</th>
+              <th scope="col">Priority reason</th>
+              <th scope="col">Review status</th>
+              <th scope="col">Report</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+            <tr>
+              <td class="text-center text-muted">{{ forloop.counter0|add:page_obj.start_index }}</td>
+              <td><strong>{{ r.patient_display_name|default:"—" }}</strong></td>
+              <td class="text-nowrap">{{ r.patient_phone|default:"—" }}</td>
+              <td>{{ r.image_name|default:"—" }}</td>
+              <td class="text-nowrap">{{ r.patient_sex|default:"—" }}{% if r.patient_age != None %} / {{ r.patient_age }}{% endif %}</td>
+              <td class="text-center fw-semibold">{{ r.predicted_class|upper }}</td>
+              <td class="text-nowrap">{{ r.confidence_percent|floatformat:1 }}%</td>
+              <td class="small text-nowrap">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="small doctor-priority-reason">
+                <span class="badge mb-1 {% if r.priority_key == 'p1' %}bg-danger{% elif r.priority_key == 'p2' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                  {{ r.priority_label }}
+                </span>
+                <div>{{ r.priority_reason }}</div>
+              </td>
+              <td class="doctor-review-cell">
+                <form method="post" action="{% url 'doctors:review_update' r.reference_id %}" class="doctor-review-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="return_to" value="{{ request.get_full_path }}">
+                  <select name="review_status" class="form-select form-select-sm" aria-label="Follow-up status for {{ r.patient_name|default:r.image_name }}">
+                    {% for value, label in review_statuses %}
+                      <option value="{{ value }}" {% if r.review_status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <div class="doctor-review-actions">
+                    <input type="date" name="review_date" class="form-control form-control-sm"
+                           aria-label="Appointment or review date for {{ r.patient_name|default:r.image_name }}"
+                           value="{{ r.review_date|date:'Y-m-d' }}">
+                    <button class="btn app-btn-outline doctor-submit-button" type="submit">Save</button>
+                  </div>
+                </form>
+                {% if r.review_date %}<div class="small text-muted mt-1">Review date: {{ r.review_date|date:"Y-m-d" }}</div>{% endif %}
+              </td>
+              <td class="text-nowrap"><a class="btn app-btn-outline btn-sm doctor-open-report" href="{% url 'predictor:result' r.reference_id %}">Open report</a></td>
+              <td class="text-center">
+                <a class="btn btn-outline-danger btn-sm doctor-delete-button"
+                   href="{% url 'doctors:delete_record' r.reference_id %}"
+                   aria-label="Delete case {{ r.reference_id }}" title="Delete case">
+                  <i data-lucide="x" aria-hidden="true" style="width:16px;height:16px;"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if page_obj.has_other_pages %}
+        <nav class="d-flex justify-content-between mt-3" aria-label="Queue pages">
+          {% if page_obj.has_previous %}
+            <a class="btn app-btn-outline btn-sm" href="?{{ query_string }}{% if query_string %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+          {% else %}<span></span>{% endif %}
+          <span class="small text-muted align-self-center">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="btn app-btn-outline btn-sm" href="?{{ query_string }}{% if query_string %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+          {% else %}<span></span>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon"><i data-lucide="inbox"></i></div>
+        <p class="fw-semibold">No cases match these filters.</p>
+        <p class="small">Try changing the priority, class, date range or review status.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

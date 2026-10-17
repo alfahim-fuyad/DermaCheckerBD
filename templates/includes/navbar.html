@@ -1,0 +1,92 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg app-nav fixed-top" aria-label="Main navigation" data-i18n-aria="nav.main">
+  <div class="container-fluid container-xl">
+    <a class="navbar-brand app-brand" href="{% url 'core:home' %}">
+      <span class="brand-mark" aria-hidden="true">
+        <img src="{% static 'images/dermacheckerbd-logo.png' %}" alt="">
+      </span>
+      <span class="brand-text">DermaChecker<span class="brand-letter-b">B</span><span class="brand-letter-d">D</span></span>
+    </a>
+
+    <button class="navbar-toggler" type="button"
+            data-bs-toggle="collapse" data-bs-target="#mainNav"
+            aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation" data-i18n-aria="nav.toggle">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{% url 'core:home' %}" data-i18n="nav.home">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{% url 'core:how_it_works' %}" data-i18n="nav.how_it_works">How It Works</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link app-nav-link dropdown-toggle" href="#" role="button"
+             data-bs-toggle="dropdown" aria-expanded="false" data-i18n="nav.features">Features</a>
+          <ul class="dropdown-menu app-dropdown">
+            <li><a class="dropdown-item" href="{% url 'photo_guide:quality_check' %}"><i data-lucide="image" class="me-2"></i><span data-i18n="feature.photo_guide">Smart Photo Guide</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'predictor:upload' %}"><i data-lucide="scan-search" class="me-2"></i><span data-i18n="feature.predict">Skin Image Prediction</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'reliability:check' %}"><i data-lucide="activity" class="me-2"></i><span data-i18n="feature.reliability">Prediction Reliability</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'reliability:dashboard' %}"><i data-lucide="bar-chart-3" class="me-2"></i><span data-i18n="feature.reliability_dashboard">Reliability Dashboard</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'multi_image:compare' %}"><i data-lucide="layers" class="me-2"></i><span data-i18n="feature.multi_image">Multi-Image Comparison</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'tracker:index' %}"><i data-lucide="calendar-clock" class="me-2"></i><span data-i18n="feature.tracker">Lesion Follow-up Tracker</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'predictor:history' %}"><i data-lucide="history" class="me-2"></i><span data-i18n="feature.history">Prediction History</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'education:index' %}"><i data-lucide="book-open" class="me-2"></i><span data-i18n="feature.library">Skin Health Library</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'questionnaire:form' %}"><i data-lucide="alert-triangle" class="me-2"></i><span data-i18n="feature.warning_signs">Warning Signs Checker</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'doctors:finder' %}"><i data-lucide="map-pin" class="me-2"></i><span data-i18n="feature.find_doctors">Find Nearby Doctors</span></a></li>
+            <li><a class="dropdown-item" href="{% url 'doctors:panel' %}"><i data-lucide="clipboard-list" class="me-2"></i><span data-i18n="feature.doctor_panel">Doctor Panel</span></a></li>
+            {% if similar_cases_enabled %}
+            <li><a class="dropdown-item" href="{% url 'similar_cases:explorer' %}"><i data-lucide="grid-2x2" class="me-2"></i><span data-i18n="feature.similar_cases">Similar Case Explorer</span></a></li>
+            {% endif %}
+          </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link app-nav-link" href="{% url 'core:about' %}" data-i18n="nav.about">About</a>
+        </li>
+        {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link app-nav-link" href="{% url 'account_dashboard' %}" data-i18n="nav.dashboard">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link app-nav-link" href="{% url 'account_profile' %}" data-i18n="nav.profile">Profile</a>
+          </li>
+          {% if perms.predictor.view_medical_priority_queue %}
+          <li class="nav-item">
+            <a class="nav-link app-nav-link" href="{% url 'doctors:panel' %}" data-i18n="nav.doctor_panel">Doctor Panel</a>
+          </li>
+          {% endif %}
+          <li class="nav-item nav-language-item">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Language" data-i18n-aria="nav.language">
+              <button type="button" class="btn btn-outline-secondary btn-sm lang-toggle-btn" data-lang="en" aria-pressed="true">EN</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm lang-toggle-btn" data-lang="bn" aria-pressed="false">বাং</button>
+            </div>
+          </li>
+          <li class="nav-item">
+            <form method="post" action="{% url 'logout' %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger app-btn-outline-danger btn-sm" data-i18n="nav.sign_out">Sign out</button>
+            </form>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link app-nav-link" href="{% url 'login' %}" data-i18n="nav.sign_in">Sign In</a>
+          </li>
+          <li class="nav-item nav-language-item">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Language" data-i18n-aria="nav.language">
+              <button type="button" class="btn btn-outline-secondary btn-sm lang-toggle-btn" data-lang="en" aria-pressed="true">EN</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm lang-toggle-btn" data-lang="bn" aria-pressed="false">বাং</button>
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="btn app-btn-primary btn-sm px-3" href="{% url 'predictor:upload' %}">
+              <i data-lucide="zap" class="me-1" style="width:1em;height:1em;"></i> <span data-i18n="nav.start_scan">Start Scan</span>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="nav-spacer"></div>

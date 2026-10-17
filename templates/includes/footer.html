@@ -1,0 +1,70 @@
+{% load static %}
+<footer class="app-footer">
+  <div class="container-xl">
+    <div class="row g-4 py-5">
+      <div class="col-lg-4 col-md-6">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="brand-mark" aria-hidden="true"><img src="{% static 'images/dermacheckerbd-logo.png' %}" alt=""></span>
+          <span class="brand-text fs-5 fw-bold">DermaChecker<span class="brand-letter-b">B</span><span class="brand-letter-d">D</span></span>
+        </div>
+        <p class="text-muted small mb-3" data-i18n="footer.tagline">
+          An experimental skin-lesion analysis prototype. Not a medical device.
+          Predictions are unverified and may be wrong. This tool does not replace
+          professional dermatology evaluation.
+        </p>
+      </div>
+      <div class="col-lg-2 col-md-6 col-6">
+        <h6 class="footer-h" data-i18n="footer.product">Product</h6>
+        <ul class="footer-links">
+          <li><a href="{% url 'core:home' %}" data-i18n="nav.home">Home</a></li>
+          <li><a href="{% url 'predictor:upload' %}" data-i18n="nav.start_scan">Start Scan</a></li>
+          <li><a href="{% url 'photo_guide:quality_check' %}" data-i18n="feature.photo_guide">Photo Guide</a></li>
+          <li><a href="{% url 'reliability:check' %}" data-i18n="feature.reliability">Reliability</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 col-6">
+        <h6 class="footer-h" data-i18n="footer.research">Research</h6>
+        <ul class="footer-links">
+          <li><a href="{% url 'multi_image:compare' %}" data-i18n="feature.multi_image">Multi-Image</a></li>
+          <li><a href="{% url 'tracker:index' %}" data-i18n="feature.tracker">Follow-up Tracker</a></li>
+          <li><a href="{% url 'predictor:history' %}" data-i18n="feature.history">History</a></li>
+          {% if similar_cases_enabled %}
+          <li><a href="{% url 'similar_cases:explorer' %}" data-i18n="feature.similar_cases">Similar Cases</a></li>
+          {% endif %}
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 col-6">
+        <h6 class="footer-h" data-i18n="footer.project">Project</h6>
+        <ul class="footer-links">
+          <li><a href="{% url 'core:about' %}" data-i18n="nav.about">About</a></li>
+          <li><a href="{% url 'core:how_it_works' %}" data-i18n="nav.how_it_works">How It Works</a></li>
+          <li><a href="{% url 'core:privacy' %}" data-i18n="footer.privacy_disclaimer">Privacy &amp; Disclaimer</a></li>
+        </ul>
+      </div>
+      <div class="col-lg-2 col-md-6 col-6">
+        <h6 class="footer-h" data-i18n="footer.account">Account</h6>
+        <ul class="footer-links">
+          {% if user.is_authenticated %}
+          <li><a href="{% url 'account_profile' %}" data-i18n="nav.profile">Profile</a></li>
+          <li><form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}<button type="submit" class="footer-link-btn" data-i18n="nav.sign_out">Sign out</button></form></li>
+          {% else %}
+          <li><a href="{% url 'login' %}" data-i18n="nav.sign_in">Sign In</a></li>
+          <li><a href="{% url 'account_signup' %}" data-i18n="footer.register">Register</a></li>
+          {% endif %}
+          <li><a href="{% url 'admin:index' %}" data-i18n="nav.admin">Admin</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="row align-items-center g-2">
+        <div class="col-md-8 small text-muted" data-i18n="footer.copyright">
+          &copy; {% now "Y" %} DermaCheckerBD. University capstone project. All predictions are
+          experimental and must not be treated as medical advice.
+        </div>
+        <div class="col-md-4 text-md-end small">
+          <a href="{% url 'core:privacy' %}" class="footer-link-muted" data-i18n="footer.privacy_disclaimer">Privacy &amp; Disclaimer</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>

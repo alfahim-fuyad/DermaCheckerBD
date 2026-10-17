@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Find Nearby Doctors · DermaCheckerBD{% endblock %}
+
+{% block extra_head %}
+<!-- MapLibre GL JS (open-source, MIT). Served from jsDelivr to avoid the
+     cross-origin failures seen with the previous unpkg URL. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+{% endblock %}
+
+{% block content %}
+<section class="section doctors-section">
+  <div class="container-xl" style="max-width: 72rem;">
+    <span class="app-badge mb-3">
+      <i data-lucide="map-pin" style="width:14px;height:14px;"></i>
+      <span data-i18n="docs.eyebrow">Nearby medical services</span>
+    </span>
+    <h1 class="mb-2" data-i18n="docs.title">Find nearby dermatologists &amp; hospitals</h1>
+    <p class="text-muted mb-4" data-i18n="docs.subtitle">
+      Use your device location (with permission) or type a city/area to
+      search for medical facilities. Real results come from the Geoapify
+      Places API powered by OpenStreetMap data — no fabricated names,
+      distances, or ratings.
+    </p>
+
+    {% if not geoapify_configured %}
+      <div class="medical-disclaimer mb-4" role="status">
+        <strong data-i18n="docs.not_configured_title">Geoapify API key is not set.</strong>
+        <span data-i18n="docs.not_configured_body">
+          The search feature is disabled until GEOAPIFY_API_KEY is added in
+          the server environment. See the README for setup instructions.
+        </span>
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <!-- LEFT: map + search controls -->
+      <div class="col-lg-7">
+        <div class="app-card doctors-card">
+          <!-- Search controls -->
+          <div class="doctors-controls">
+            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+              <button type="button" id="useGpsBtn" class="btn app-btn-primary btn-sm"
+                      {% if not geoapify_configured %}disabled{% endif %}>
+                <i data-lucide="map-pin" style="width:14px;height:14px;"></i>
+                <span data-i18n="docs.use_my_location">Use my location</span>
+              </button>
+
+              <form id="manualSearchForm" class="d-flex gap-2 flex-grow-1" role="search">
+                <input type="text" id="manualSearchInput" class="form-control app-form-control"
+                       placeholder="Or type a city / area (e.g. Dhaka, Chittagong)"
+                       data-i18n-ph="docs.location_placeholder"
+                       aria-label="Manual location search"
+                       data-i18n-aria="docs.manual_search_aria"
+                       {% if not geoapify_configured %}disabled{% endif %}>
+                <button type="submit" class="btn app-btn-outline btn-sm"
+                        {% if not geoapify_configured %}disabled{% endif %}>
+                  <i data-lucide="search" style="width:14px;height:14px;"></i>
+                  <span data-i18n="docs.search">Search</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Radius selector + dermatologist filter -->
+            <div class="d-flex flex-wrap gap-3 align-items-center mb-2">
+              <div class="d-flex align-items-center gap-2">
+                <label for="radiusSelect" class="small text-muted mb-0"
+                       data-i18n="docs.radius_label">Search radius</label>
+                <select id="radiusSelect" class="form-select form-select-sm doctors-radius-select"
+                        aria-label="Search radius" data-i18n-aria="docs.radius_label">
+                  {% for r in radius_options %}
+                    <option value="{{ r }}" {% if r == default_radius %}selected{% endif %}>{{ r }} km</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="form-check form-switch doctors-switch">
+                <input class="form-check-input" type="checkbox" id="dermatologistOnly"
+                       aria-label="Dermatologist specialists only" data-i18n-aria="docs.dermatologist_only">
+                <label class="form-check-label small" for="dermatologistOnly"
+                       data-i18n="docs.dermatologist_only">Dermatologist specialists only</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Map -->
+          <div id="mapContainer" class="doctors-map-container">
+            <div id="map" class="doctors-map"
+                 role="application"
+                 aria-label="Interactive map of nearby medical facilities"
+                 data-i18n-aria="docs.map_aria"></div>
+            <div id="mapFallback" class="doctors-map-fallback" role="status" hidden></div>
+            <div id="radarOverlay" class="radar-overlay" aria-hidden="true">
+              <div class="radar-sweep"></div>
+              <div class="radar-rings"><span></span><span></span><span></span></div>
+              <div class="radar-label" data-i18n="docs.scanning">Scanning…</div>
+            </div>
+          </div>
+
+          <!-- Status / attribution -->
+          <div id="searchStatus" class="doctors-status small text-muted mt-2" role="status" aria-live="polite"></div>
+          <div class="doctors-attribution small text-muted mt-1">
+            <i data-lucide="info" style="width:11px;height:11px;vertical-align:-1px;"></i>
+            <span data-i18n="docs.attribution">Map data</span>:
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>,
+            <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: results list -->
+      <div class="col-lg-5">
+        <div class="app-card mb-3">
+          <h2 class="h6 mb-2" data-i18n="docs.how_works">How this works</h2>
+          <ul class="small text-muted mb-0">
+            <li data-i18n="docs.how_1">Your browser asks for location permission. Coordinates are sent to our server, which calls Geoapify — never directly from the browser.</li>
+            <li data-i18n="docs.how_2">Results come from OpenStreetMap via the Geoapify Places API: hospitals, clinics, and dermatologists tagged by the OSM community.</li>
+            <li data-i18n="docs.how_3" data-i18n-param-max="{{ max_results }}">Up to {{ max_results }} facilities are shown, sorted by distance. No fabricated names, ratings, or hours.</li>
+            <li data-i18n="docs.how_4">If location is denied, type an area name — we geocode it via Geoapify and search from there.</li>
+          </ul>
+        </div>
+
+        <div class="app-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 mb-0">
+              <span data-i18n="docs.results">Results</span>
+              <span id="resultCount" class="badge bg-secondary ms-1">0</span>
+            </h2>
+            <button type="button" id="retryBtn" class="btn btn-outline-secondary btn-sm d-none">
+              <i data-lucide="refresh-cw" style="width:12px;height:12px;"></i>
+              <span data-i18n="docs.retry">Retry</span>
+            </button>
+          </div>
+          <div id="resultsList" class="doctors-results">
+            <div class="doctors-empty" data-i18n="docs.no_search">No search performed yet.</div>
+          </div>
+        </div>
+
+        <div class="medical-disclaimer mt-3" data-i18n="docs.disclaimer">
+          <strong>Important:</strong> a hospital listing does not confirm
+          dermatology services. Phone numbers and addresses come from
+          OpenStreetMap and may be outdated — always call ahead to confirm.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js" defer></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var MAP_TILES_URL = "{{ map_tiles_url|escapejs }}";
+    var MAP_ATTRIBUTION = "{{ map_attribution|escapejs }}";
+    var DEFAULT_RADIUS_KM = {{ default_radius }};
+    var MAX_RESULTS = {{ max_results }};
+    var CSRF_TOKEN = "{{ csrf_token }}";
+    var CONFIGURED = {{ geoapify_configured|yesno:"true,false" }};
+    var t = window.DERMA.t;
+
+    var mapEl = document.getElementById('map');
+    var mapFallback = document.getElementById('mapFallback');
+    var radar = document.getElementById('radarOverlay');
+    var status = document.getElementById('searchStatus');
+    var resultsList = document.getElementById('resultsList');
+    var resultCount = document.getElementById('resultCount');
+    var retryBtn = document.getElementById('retryBtn');
+    var radiusSelect = document.getElementById('radiusSelect');
+    var dermOnly = document.getElementById('dermatologistOnly');
+    var useGpsBtn = document.getElementById('useGpsBtn');
+    var manualForm = document.getElementById('manualSearchForm');
+    var manualInput = document.getElementById('manualSearchInput');
+
+    var map = null;
+    var userMarker = null;
+    var facilityMarkers = [];
+    var lastFacilities = [];
+    var lastSearch = null;     // {lat, lon, radius_km, derm_only} for retry
+    var lastStatusKey = { key: 'docs.no_search', fallback: 'No search performed yet.', params: {} };
+
+    // ---- Helpers ----------------------------------------------------------
+    function setStatusKey(key, fallback, params) {
+      lastStatusKey = { key: key, fallback: fallback, params: params || {} };
+      status.textContent = t(key, fallback, params);
+    }
+    function setStatus(msg) { status.textContent = msg || ''; }
+    function showRadar(show) { radar.style.display = show ? 'block' : 'none'; }
+    function showMapFallback(key, fallback) {
+      mapFallback.textContent = t(key, fallback);
+      mapFallback.hidden = false;
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function initMap() {
+      if (map) return true;
+      if (!CONFIGURED) {
+        showMapFallback(
+          'docs.map_not_configured',
+          'Map and facility search need a Geoapify API key to be configured.'
+        );
+        return false;
+      }
+      if (typeof maplibregl === 'undefined') {
+        showMapFallback(
+          'docs.map_unavailable',
+          'The map could not load. Search results will still be listed below.'
+        );
+        return false;
+      }
+      // Default view: Dhaka, Bangladesh. Will be recentered after search.
+      try {
+        map = new maplibregl.Map({
+          container: mapEl,
+          style: {
+            version: 8,
+            sources: {
+              'geoapify-tiles': {
+                type: 'raster',
+                tiles: [MAP_TILES_URL],
+                tileSize: 256,
+                attribution: MAP_ATTRIBUTION,
+                maxzoom: 20,
+              }
+            },
+            layers: [{
+              id: 'geoapify-tiles',
+              type: 'raster',
+              source: 'geoapify-tiles',
+              minzoom: 0,
+              maxzoom: 20,
+            }],
+          },
+          center: [90.4125, 23.8103],  // [lon, lat]
+          zoom: 11,
+        });
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+        map.on('load', function () { mapFallback.hidden = true; });
+        map.on('error', function () {
+          showMapFallback(
+            'docs.map_unavailable',
+            'The map could not load. Search results will still be listed below.'
+          );
+        });
+        return true;
+      } catch (err) {
+        console.warn('MapLibre could not initialize:', err);
+        map = null;
+        showMapFallback(
+          'docs.map_unavailable',
+          'The map could not load. Search results will still be listed below.'
+        );
+        return false;
+      }
+    }
+
+    function clearMarkers() {
+      if (userMarker) { userMarker.remove(); userMarker = null; }
+      facilityMarkers.forEach(function (m) { m.remove(); });
+      facilityMarkers = [];
+    }
+
+    // ---- AJAX calls (server-side proxies the API so the key never leaks) --
+    function searchAt(lat, lon, opts) {
+      opts = opts || {};
+      var radiusKm = parseInt(opts.radius_km || radiusSelect.value || DEFAULT_RADIUS_KM, 10);
+      var dermOnly = opts.derm_only !== undefined ? opts.derm_only : dermOnly2();
+      lastSearch = { lat: lat, lon: lon, radius_km: radiusKm, derm_only: dermOnly };
+
+      var mapReady = initMap();
+      clearMarkers();
+
+      if (mapReady) {
+        // User location marker (blue dot)
+        var userEl = document.createElement('div');
+        userEl.className = 'doctors-user-marker';
+        userEl.setAttribute('aria-label', t('docs.your_location', 'Your location'));
+        userMarker = new maplibregl.Marker({ element: userEl })
+          .setLngLat([lon, lat])
+          .addTo(map);
+        // Reverse geocode label popup
+        userMarker.setPopup(new maplibregl.Popup({ offset: 18 })
+          .setHTML('<strong>' + escapeHtml(t('docs.your_location', 'Your location')) + '</strong>'));
+        map.flyTo({ center: [lon, lat], zoom: 13, duration: 800 });
+      }
+
+      showRadar(true);
+      retryBtn.classList.add('d-none');
+      setStatusKey('docs.searching', 'Searching for medical facilities within {{radius}} km…',
+                   { radius: radiusKm });
+      resultsList.innerHTML = '<div class="doctors-loading">' +
+        '<span class="spinner-border spinner-border-sm me-2"></span>' +
+        escapeHtml(t('docs.loading', 'Loading…')) + '</div>';
+      resultCount.textContent = '0';
+
+      fetch('/doctors/search/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lon,
+          radius_km: radiusKm,
+          dermatologists_only: dermOnly,
+        }),
+        credentials: 'same-origin',
+      }).then(function (resp) {
+        return resp.json().then(function (body) {
+          return { ok: resp.ok, status: resp.status, body: body };
+        });
+      }).then(function (r) {
+        showRadar(false);
+        if (!r.ok) {
+          showError(r.body, r.status);
+          return;
+        }
+        var facilities = (r.body.facilities || []).slice(0, MAX_RESULTS);
+        lastFacilities = facilities;
+        renderResults(facilities, r.body);
+        if (facilities.length === 0) {
+          setStatusKey('docs.none_found',
+            'No medical facilities found within {{radius}} km. Try a larger radius or a different area.',
+            { radius: radiusKm });
+        } else {
+          setStatusKey('docs.found',
+            '{{count}} medical facilities found within {{radius}} km.',
+            { count: facilities.length, radius: radiusKm });
+        }
+      }).catch(function (err) {
+        showRadar(false);
+        setStatusKey('docs.search_error', 'The search failed. Please try again in a moment.');
+        retryBtn.classList.remove('d-none');
+      });
+    }
+
+    function dermOnly2() { return !!dermOnly.checked; }
+
+    function showError(body, httpStatus, canRetry) {
+      retryBtn.classList.toggle('d-none', canRetry === false);
+      var code = (body && body.error) || 'unknown';
+      var msg = (body && body.message) || '';
+      var keyMap = {
+        'not_configured': { key: 'docs.error_not_configured', fallback: 'Geoapify API key is not set on the server.' },
+        'invalid_input':  { key: 'docs.error_invalid_input',  fallback: 'Invalid search parameters.' },
+        'timeout':         { key: 'docs.error_timeout',        fallback: 'The location service is taking too long. Please try again.' },
+        'upstream_error':  { key: 'docs.error_upstream',       fallback: 'The location service returned an error.' },
+        'missing_query':   { key: 'docs.error_missing_query',  fallback: 'Please enter a location.' },
+        'missing_coordinates': { key: 'docs.error_missing_coords', fallback: 'Coordinates are missing.' },
+        'invalid_request': { key: 'docs.error_invalid_request', fallback: 'Invalid request.' },
+      };
+      var mapped = keyMap[code] || { key: 'docs.error_generic', fallback: msg || 'Search failed.' };
+      setStatusKey(mapped.key, mapped.fallback);
+      resultsList.innerHTML = '<div class="doctors-error">' +
+        '<i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> ' +
+        escapeHtml(t(mapped.key, mapped.fallback)) + '</div>';
+      if (window.lucide) window.lucide.createIcons();
+      resultCount.textContent = '0';
+      lastFacilities = [];
+    }
+
+    function renderResults(facilities, body) {
+      resultCount.textContent = facilities.length;
+      if (!facilities.length) {
+        resultsList.innerHTML = '<div class="doctors-empty">' +
+          escapeHtml(t('docs.no_results', 'No results.')) + '</div>';
+        return;
+      }
+      resultsList.innerHTML = facilities.map(function (f, i) {
+        var typeLabel = facilityTypeLabel(f);
+        var distanceText = distanceLabel(f.distance_m);
+        var phone = f.phone ? '<div class="doctors-card-phone small">' +
+          '<i data-lucide="phone" style="width:11px;height:11px;"></i> ' +
+          '<a href="tel:' + escapeHtml(f.phone) + '">' + escapeHtml(f.phone) + '</a></div>' : '';
+        var website = f.website ? '<div class="small">' +
+          '<i data-lucide="external-link" style="width:11px;height:11px;"></i> ' +
+          '<a href="' + escapeHtml(f.website) + '" target="_blank" rel="noopener noreferrer">' +
+          escapeHtml(t('docs.website', 'Website')) + '</a></div>' : '';
+        var dermBadge = f.is_dermatologist ?
+          '<span class="badge bg-success doctors-card-badge">' +
+          escapeHtml(t('docs.badge_dermatologist', 'Dermatologist')) + '</span>' : '';
+        var hospitalBadge = f.is_hospital ?
+          '<span class="badge bg-info doctors-card-badge">' +
+          escapeHtml(t('docs.badge_hospital', 'Hospital')) + '</span>' : '';
+        var clinicBadge = f.is_clinic ?
+          '<span class="badge bg-secondary doctors-card-badge">' +
+          escapeHtml(t('docs.badge_clinic', 'Clinic')) + '</span>' : '';
+
+        return '<div class="doctors-card-item" data-index="' + i + '" tabindex="0" role="button" ' +
+              'aria-label="' + escapeHtml(f.name) + '">' +
+          '<div class="d-flex justify-content-between align-items-start">' +
+            '<div class="flex-grow-1">' +
+              '<div class="fw-semibold">' + (i + 1) + '. ' + escapeHtml(f.name) + '</div>' +
+              '<div class="doctors-card-meta small text-muted">' +
+                '<span class="doctors-card-type">' + escapeHtml(typeLabel) + '</span>' +
+                '<span aria-hidden="true"> · </span>' +
+                '<span class="doctors-card-distance">' + escapeHtml(distanceText) + '</span>' +
+              '</div>' +
+              '<div class="doctors-card-address small text-muted">' +
+                '<i data-lucide="map-pin" style="width:11px;height:11px;"></i> ' +
+                escapeHtml(f.address || '') + '</div>' +
+              phone + website +
+              '<div class="doctors-card-badges mt-1">' + dermBadge + hospitalBadge + clinicBadge + '</div>' +
+              (f.is_dermatologist ? '' :
+                '<div class="doctors-card-disclaimer small text-muted">' +
+                escapeHtml(t('docs.confirm_specialty', 'Confirm dermatology services by phone.')) + '</div>') +
+            '</div>' +
+            '<a href="' + escapeHtml(f.directions_url) + '" target="_blank" rel="noopener noreferrer" ' +
+              'class="btn btn-outline-primary btn-sm ms-2 doctors-card-directions" ' +
+              'title="' + escapeHtml(t('docs.open_directions', 'Open directions in Google Maps')) + '" ' +
+              'aria-label="' + escapeHtml(t('docs.open_directions', 'Open directions')) + '">' +
+              '<i data-lucide="navigation" style="width:14px;height:14px;"></i>' +
+            '</a>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      if (window.lucide) window.lucide.createIcons();
+
+      // Synchronise map markers with result cards
+      if (map) {
+        facilities.forEach(function (f) {
+          var popup = new maplibregl.Popup({ offset: 18 }).setHTML(
+            '<strong>' + escapeHtml(f.name) + '</strong><br>' +
+            '<span class="small text-muted">' + escapeHtml(facilityTypeLabel(f)) +
+            ' · ' + escapeHtml(distanceLabel(f.distance_m)) + '</span>' +
+            (f.address ? '<br><span class="small">' + escapeHtml(f.address) + '</span>' : '') +
+            (f.phone ? '<br><a href="tel:' + escapeHtml(f.phone) + '">' + escapeHtml(f.phone) + '</a>' : '')
+          );
+          var marker = new maplibregl.Marker({ color: f.is_dermatologist ? '#16a34a' : '#0d9488' })
+            .setLngLat([f.longitude, f.latitude])
+            .setPopup(popup)
+            .addTo(map);
+          facilityMarkers.push(marker);
+        });
+      }
+
+      // Click on a card -> focus the matching marker on the map
+      Array.prototype.forEach.call(
+        resultsList.querySelectorAll('.doctors-card-item'),
+        function (card) {
+          card.addEventListener('click', function () {
+            var idx = parseInt(card.getAttribute('data-index'), 10);
+            var f = facilities[idx];
+            if (!f || !map) return;
+            map.flyTo({ center: [f.longitude, f.latitude], zoom: 15, duration: 600 });
+            var m = facilityMarkers[idx];
+            if (m) m.togglePopup();
+          });
+        }
+      );
+
+      // Fit bounds to include user + all facilities
+      if (map) {
+        var bounds = new maplibregl.LngLatBounds();
+        if (userMarker) bounds.extend(userMarker.getLngLat());
+        facilities.forEach(function (f) { bounds.extend([f.longitude, f.latitude]); });
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 600 });
+        }
+      }
+    }
+
+    function facilityTypeLabel(f) {
+      if (f.is_dermatologist) return t('docs.type.dermatologist', 'Dermatologist');
+      if (f.is_hospital) return t('docs.type.hospital', 'Hospital');
+      if (f.is_clinic) return t('docs.type.clinic', 'Clinic');
+      return t('docs.type.facility', 'Medical facility');
+    }
+
+    function distanceLabel(distanceM) {
+      if (distanceM == null) return t('docs.distance_unknown', 'Distance unknown');
+      if (distanceM < 1000) {
+        return t('docs.m_away', '{{metres}} m away', { metres: Math.round(distanceM) });
+      }
+      return t('docs.km_away', '{{distance}} km away',
+               { distance: (distanceM / 1000).toFixed(2) });
+    }
+
+    // ---- Event wiring -----------------------------------------------------
+    useGpsBtn.addEventListener('click', function () {
+      if (!CONFIGURED) {
+        setStatus(t('docs.error_not_configured', 'Geoapify API key is not set on the server.'));
+        return;
+      }
+      if (!navigator.geolocation) {
+        setStatus(t('docs.no_geolocation', 'Geolocation is not supported by your browser.'));
+        return;
+      }
+      setStatus(t('docs.requesting_location', 'Requesting location permission…'));
+      navigator.geolocation.getCurrentPosition(
+        function (pos) { searchAt(pos.coords.latitude, pos.coords.longitude); },
+        function (err) {
+          var key = err.code === err.PERMISSION_DENIED ? 'docs.geo_denied' : 'docs.geo_error';
+          setStatus(t(key, 'Location permission denied. Use the manual search instead.'));
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    manualForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!CONFIGURED) {
+        setStatus(t('docs.error_not_configured', 'Geoapify API key is not set on the server.'));
+        return;
+      }
+      var q = manualInput.value.trim();
+      if (!q) {
+        setStatus(t('docs.error_missing_query', 'Please enter a location.'));
+        manualInput.focus();
+        return;
+      }
+      lastSearch = null;
+      lastFacilities = [];
+      resultCount.textContent = '0';
+      retryBtn.classList.add('d-none');
+      showRadar(true);
+      setStatus(t('docs.geocoding', 'Looking up "' + q + '"…'));
+      resultsList.innerHTML = '<div class="doctors-loading">' +
+        '<span class="spinner-border spinner-border-sm me-2"></span>' +
+        escapeHtml(t('docs.loading', 'Loading…')) + '</div>';
+      fetch('/doctors/geocode/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: JSON.stringify({ query: q }),
+        credentials: 'same-origin',
+      }).then(function (r) {
+        return r.json().then(function (body) {
+          return { ok: r.ok, status: r.status, body: body };
+        });
+      }).then(function (r) {
+        showRadar(false);
+        if (!r.ok) {
+          showError(r.body, r.status, false);
+          return;
+        }
+        var data = r.body;
+        if (!data.success || !data.matches || !data.matches.length) {
+          retryBtn.classList.add('d-none');
+          setStatus(t('docs.no_match', 'Could not find that location. Try a more specific name.'));
+          resultsList.innerHTML = '<div class="doctors-empty">' +
+            escapeHtml(t('docs.no_match', 'No location found.')) + '</div>';
+          return;
+        }
+        var m = data.matches[0];
+        searchAt(m.latitude, m.longitude);
+      }).catch(function (err) {
+        showRadar(false);
+        setStatus(t('docs.search_error', 'The search failed. Please try again in a moment.'));
+        resultsList.innerHTML = '<div class="doctors-error">' +
+          escapeHtml(t('docs.search_error', 'The search failed. Please try again in a moment.')) + '</div>';
+        retryBtn.classList.add('d-none');
+      });
+    });
+
+    // Re-run search when radius or dermatologist filter changes (if we already have a centre)
+    radiusSelect.addEventListener('change', function () { maybeRerun(); });
+    dermOnly.addEventListener('change', function () { maybeRerun(); });
+    function maybeRerun() {
+      if (!lastSearch) return;
+      searchAt(lastSearch.lat, lastSearch.lon, {
+        radius_km: parseInt(radiusSelect.value, 10),
+        derm_only: dermOnly2(),
+      });
+    }
+
+    retryBtn.addEventListener('click', function () {
+      if (lastSearch) maybeRerun();
+    });
+
+    // Language change: re-render labels and last results in new language
+    document.addEventListener('derma:languagechange', function () {
+      setStatusKey(lastStatusKey.key, lastStatusKey.fallback, lastStatusKey.params);
+      if (lastFacilities.length) {
+        renderResults(lastFacilities, { attribution: MAP_ATTRIBUTION });
+      } else if (lastStatusKey.key === 'docs.no_search') {
+        resultsList.innerHTML = '<div class="doctors-empty">' +
+          escapeHtml(t('docs.no_search', 'No search performed yet.')) + '</div>';
+      }
+    });
+
+    // Show a useful fallback if the map provider is not configured or the
+    // third-party MapLibre script cannot be loaded.
+    if (CONFIGURED) {
+      setTimeout(initMap, 50);
+    } else {
+      showMapFallback(
+        'docs.map_not_configured',
+        'Map and facility search need a Geoapify API key to be configured.'
+      );
+    }
+    setStatus(t('docs.ready', 'Ready. Click "Use my location" or type a city name.'));
+  });
+</script>
+{% endblock %}

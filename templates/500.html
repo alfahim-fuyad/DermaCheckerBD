@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}500 — Server Error · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl text-center" style="max-width: 42rem; padding-top: 4rem;">
+    <div class="empty-state">
+      <div class="empty-icon" style="font-size: 4rem; color: var(--muted);">
+        <i data-lucide="alert-octagon"></i>
+      </div>
+      <h1 class="display-4 mb-3" data-i18n="error.500_title">500</h1>
+      <p class="lead text-muted mb-4" data-i18n="error.500_message">
+        Something went wrong on our end. Please try again in a moment.
+        If the problem persists, contact the project maintainer.
+      </p>
+      <div class="d-flex gap-2 justify-content-center">
+        <a href="{% url 'core:home' %}" class="btn app-btn-primary">
+          <i data-lucide="home" style="width:16px;height:16px;"></i>
+          <span data-i18n="error.go_home">Go to homepage</span>
+        </a>
+        <a href="mailto:support@dermacheckerbd.local" class="btn app-btn-outline">
+          <i data-lucide="mail" style="width:16px;height:16px;"></i>
+          <span data-i18n="error.contact_support">Contact support</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Delete lesion record? · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 42rem;">
+    <h1 class="mb-3" data-i18n="trdel.title">Delete this lesion record?</h1>
+    <div class="app-card">
+      <p><strong data-i18n="trdel.reference">Reference:</strong> {{ record.lesion_id }}</p>
+      <p><strong data-i18n="trdel.label">Label:</strong> {{ record.label }}</p>
+      <p><strong data-i18n="trdel.photos">Photos:</strong> {{ record.photos.count }}</p>
+      <div class="medical-disclaimer" data-i18n="trdel.warning">This will permanently delete the record and all photos. This action cannot be undone.</div>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn app-btn-outline-danger mt-3">
+          <i data-lucide="trash-2" style="width:16px;height:16px;"></i> <span data-i18n="trdel.confirm">Yes, delete</span>
+        </button>
+        <a href="{% url 'tracker:detail' record.lesion_id %}" class="btn app-btn-outline mt-3" data-i18n="common.cancel">Cancel</a>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

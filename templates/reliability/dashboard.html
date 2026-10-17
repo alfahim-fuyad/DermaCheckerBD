@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prediction Reliability Dashboard · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 60rem;">
+    <span class="app-badge mb-3"><i data-lucide="activity" style="width:14px;height:14px;"></i> <span data-i18n="rd.eyebrow">Reliability dashboard</span></span>
+    <h1 class="mb-2" data-i18n="rd.title">Prediction reliability dashboard</h1>
+    <p class="text-muted mb-4" data-i18n="rd.subtitle">
+      Documented test metrics summarize the reported evaluation set. Saved
+      stability results show how outputs respond to image changes, not whether
+      a prediction is correct.
+    </p>
+
+    <!-- Documented model metrics -->
+    <div class="app-card mb-4">
+      <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div>
+          <h2 class="h5 mb-1" data-i18n="rd.documented_metrics">Documented model metrics</h2>
+          <p class="text-muted small mb-0">{{ documented.source }}</p>
+        </div>
+        <span class="badge bg-light text-muted">ResNet50 / HAM10000</span>
+      </div>
+      <div class="row g-3 text-center">
+        <div class="col-6 col-md-3">
+          <div class="stat-block">
+            <div class="stat-value">{{ documented.test_accuracy_percent|floatformat:2 }}%</div>
+            <div class="stat-label" data-i18n="rd.test_accuracy">Test accuracy</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-block">
+            <div class="stat-value">{{ documented.macro_f1_percent|floatformat:2 }}%</div>
+            <div class="stat-label" data-i18n="rd.macro_f1">Macro F1</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-block">
+            <div class="stat-value">{{ documented.macro_auc_percent|floatformat:2 }}%</div>
+            <div class="stat-label" data-i18n="rd.macro_auc">Macro AUC</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-block warning">
+            <div class="stat-value">—</div>
+            <div class="stat-label" data-i18n="rd.ece_pending">ECE (pending)</div>
+          </div>
+        </div>
+      </div>
+      <div class="medical-disclaimer mt-3 mb-0">
+        <strong data-i18n="rd.why_ece">Why ECE is pending:</strong> {{ documented.note }}
+      </div>
+    </div>
+
+    <!-- Saved per-image stability -->
+    <div class="app-card mb-4 dashboard-chart-card">
+      <h2 class="h5 mb-1" data-i18n="rd.saved_stability">Your saved prediction stability</h2>
+      <p class="text-muted small mb-3" data-i18n="rd.stability_scope">
+        Agreement under mild image changes, calculated only from saved predictions in your account or this browser session. Stability is not accuracy or a diagnosis.
+      </p>
+      <div class="row g-3 text-center mb-3">
+        <div class="col-4">
+          <div class="stat-block">
+            <div class="stat-value">{{ stability_count }}</div>
+            <div class="stat-label" data-i18n="rd.saved_checks">Saved checks</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="stat-block">
+            <div class="stat-value">{% if stability_average != None %}{{ stability_average|floatformat:1 }}%{% else %}—{% endif %}</div>
+            <div class="stat-label" data-i18n="rd.average_agreement">Average agreement</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="stat-block">
+            <div class="stat-value">{{ stable_count }}</div>
+            <div class="stat-label" data-i18n="rd.stable_predictions">Stable predictions</div>
+          </div>
+        </div>
+      </div>
+      {% if recent_stability %}
+        <div class="dashboard-chart-frame">
+          <canvas id="stabilityChart" aria-label="Saved prediction stability chart" role="img"></canvas>
+        </div>
+        <p id="stabilityChartUnavailable" class="small text-muted mt-2 mb-0" hidden>Charts could not be loaded. The summary above is still available.</p>
+        <p class="text-muted small mb-0 mt-2" data-i18n="rd.chart_limit">Chart shows up to 20 of the most recent saved checks; summary uses up to 200.</p>
+      {% else %}
+        <div class="empty-state py-3">
+          <p class="fw-semibold mb-1" data-i18n="rd.no_saved_stability">No saved stability results yet</p>
+          <p class="small mb-0" data-i18n="rd.no_saved_stability_sub">Run a prediction while signed in, or in this browser session, to see its stability result here.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Conceptual explainer -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <div class="app-card h-100">
+          <div class="feature-icon mb-2"><i data-lucide="activity"></i></div>
+          <h3 class="h6" data-i18n="rd.confidence_not_accuracy">Confidence ≠ accuracy</h3>
+          <p class="small mb-0" data-i18n="rd.confidence_body">
+            A high softmax confidence on one image tells you only that the
+            model is internally confident — not that the prediction is
+            medically correct.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="app-card h-100">
+          <div class="feature-icon mb-2"><i data-lucide="shield-alert"></i></div>
+          <h3 class="h6" data-i18n="rd.stability_not_correctness">Stability ≠ correctness</h3>
+          <p class="small mb-0" data-i18n="rd.stability_body">
+            Stability measures whether the prediction flips under mild image
+            transforms. A prediction can be perfectly stable and still wrong.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'reliability:check' %}" class="btn app-btn-primary btn-sm">
+        <i data-lucide="zap" style="width:14px;height:14px;"></i> <span data-i18n="rd.run_per_image">Run a per-image reliability check</span>
+      </a>
+      <a href="{% url 'predictor:upload' %}" class="btn app-btn-outline btn-sm">
+        <i data-lucide="scan-search" style="width:14px;height:14px;"></i> <span data-i18n="rd.analyze_image">Analyze an image</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer crossorigin="anonymous"></script>
+{{ recent_stability|json_script:"reliability-stability-data" }}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var canvas = document.getElementById('stabilityChart');
+    if (!canvas) return;
+    if (!window.Chart) {
+      document.getElementById('stabilityChartUnavailable').hidden = false;
+      return;
+    }
+    var stability = JSON.parse(document.getElementById('reliability-stability-data').textContent);
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: stability.map(function (item) { return item.label; }),
+        datasets: [
+          {
+            label: 'Agreement under mild image changes (%)',
+            data: stability.map(function (item) { return item.agreement_pct; }),
+            borderColor: 'rgba(13, 148, 136, 1)',
+            backgroundColor: 'rgba(13, 148, 136, 0.12)',
+            pointBackgroundColor: 'rgba(13, 148, 136, 1)',
+            borderWidth: 2,
+            pointRadius: 4,
+            fill: true,
+            tension: 0.25,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { color: '#64748b', callback: function (value) { return value + '%'; } }, grid: { color: '#e2e8f0' } },
+          x: { ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 45, minRotation: 0 }, grid: { display: false } },
+        },
+      },
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Similar Case Explorer · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="grid-2x2" style="width:14px;height:14px;"></i> <span data-i18n="sc.experimental">Experimental</span></span>
+    <h1 class="mb-2" data-i18n="sc.title">Similar Case Explorer</h1>
+    <p class="text-muted" data-i18n="sc.subtitle">Visually similar reference images from the training dataset. Similarity is <strong>not</strong> a diagnosis.</p>
+    <hr class="my-4">
+
+    <div class="medical-disclaimer">
+      <strong data-i18n="sc.not_configured_title">This feature is not configured.</strong>
+      <span data-i18n="sc.not_configured_body">Similar Case Explorer requires a reference image dataset (e.g., HAM10000) and pre-computed image embeddings, neither of which is bundled with this prototype to avoid redistributing medical research data without permission. To enable this feature, set SIMILAR_CASES_ENABLED=True and configure the reference dataset path. See the README for the drop-in integration plan.</span>
+    </div>
+
+    <div class="app-card mt-4">
+      <h3 class="h6" data-i18n="sc.what_title">What this feature would show</h3>
+      <ul class="small text-muted">
+        <li data-i18n="sc.bullet_1">Top-N visually similar images from the reference dataset.</li>
+        <li data-i18n="sc.bullet_2">Each image's original dataset label (e.g., nv, mel, bkl).</li>
+        <li data-i18n="sc.bullet_3">A cosine similarity score.</li>
+        <li data-i18n="sc.bullet_4">A clear notice that visual similarity does not mean the diagnosis is the same.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

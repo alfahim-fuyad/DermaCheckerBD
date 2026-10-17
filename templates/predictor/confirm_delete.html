@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Delete record · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 42rem;">
+    <h1 class="mb-3" data-i18n="delete_predictor.title">Delete this prediction record?</h1>
+    <div class="app-card">
+      {% if record.image %}
+      <img src="{{ record.image.url }}" alt="Record image" class="rounded mb-3" style="max-height:200px;">
+      {% endif %}
+      <p><strong data-i18n="delete_predictor.reference">Reference:</strong> {{ record.reference_id }}</p>
+      <p><strong data-i18n="delete_predictor.predicted">Predicted:</strong> {{ record.predicted_class|upper }} — {{ record.predicted_name }}</p>
+      <p><strong data-i18n="delete_predictor.date">Date:</strong> {{ record.created_at|date:"Y-m-d H:i" }}</p>
+      <div class="medical-disclaimer" data-i18n="delete_predictor.warning">
+        This will permanently delete the record and the stored image. This action cannot be undone.
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn app-btn-outline-danger mt-3">
+          <i data-lucide="trash-2" style="width:16px;height:16px;"></i> <span data-i18n="delete_predictor.confirm">Yes, delete</span>
+        </button>
+        <a href="{% url 'predictor:history' %}" class="btn app-btn-outline mt-3" data-i18n="common.cancel">Cancel</a>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -159,7 +159,7 @@ manage.py
 | `ML_MODEL_CLASSES`         | `akiec,bcc,bkl,df,mel,nv,vasc`                   | Must match the trained model's output order.        |
 | `ML_MODEL_RESAMPLE`        | `BILINEAR`                                       | Resize filter; matches the supplied training pipeline. |
 | `GEMINI_API_KEY`           | unset                                            | Leave unset to run chatbot in offline mode.         |
-| `GEMINI_MODEL`             | `gemini-2.0-flash`                               | Model name.                                          |
+| `GEMINI_MODEL`             | `gemini-3.8-flash`                               | Model name.                                          |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | unset                                          | Optional comma-separated trusted origins. Replit preview origins are allowed automatically in development only. |
 | `CHATBOT_RATE_LIMIT`       | `10/m`                                           | django-ratelimit spec (10 messages/minute/IP).      |
 | `IMG_BLUR_THRESHOLD`       | `100.0`                                          | Laplacian-variance threshold for blur.              |

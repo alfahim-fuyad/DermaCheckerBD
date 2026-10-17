@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Lesion Follow-up Tracker · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="calendar-clock" style="width:14px;height:14px;"></i> <span data-i18n="tr.eyebrow">Follow-up</span></span>
+    <h1 class="mb-2" data-i18n="tr.title">Lesion Follow-up Tracker</h1>
+    <p class="text-muted" data-i18n="tr.subtitle">Save skin lesion photos with dates and review them over time. Private to your account.</p>
+    <hr class="my-4">
+
+    <div class="d-flex gap-2 flex-wrap mb-4">
+      <a href="{% url 'tracker:create' %}" class="btn app-btn-primary">
+        <i data-lucide="plus" style="width:16px;height:16px;"></i> <span data-i18n="tr.create_new">Create new lesion record</span>
+      </a>
+    </div>
+
+    {% if records %}
+      <div class="row g-4">
+        {% for r in records %}
+          <div class="col-md-6">
+            <div class="app-card h-100">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h3 class="h6 mb-1">{{ r.label }}</h3>
+                  <p class="small text-muted mb-0"><span data-i18n="tr.reference">Reference</span> {{ r.lesion_id }}</p>
+                </div>
+                <span class="badge bg-secondary rounded-pill">{{ r.photos.count }} <span data-i18n="tr.photos">photos</span></span>
+              </div>
+              {% if r.body_location %}<p class="small text-muted mt-2 mb-0"><span data-i18n="tr.location">Location:</span> {{ r.body_location }}</p>{% endif %}
+              <p class="small text-muted mt-1"><span data-i18n="tr.created">Created</span> {{ r.created_at|date:"Y-m-d" }}</p>
+              <div class="d-flex gap-2 mt-2">
+                <a href="{% url 'tracker:detail' r.lesion_id %}" class="btn app-btn-outline btn-sm" data-i18n="tr.view_timeline">View timeline</a>
+                <a href="{% url 'tracker:summary_pdf' r.lesion_id %}" class="btn app-btn-outline btn-sm">
+                  <i data-lucide="download" style="width:14px;height:14px;"></i> <span data-i18n="tr.pdf">PDF</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon"><i data-lucide="image-off"></i></div>
+        <p class="fw-semibold" data-i18n="tr.no_tracked">No tracked lesions yet.</p>
+        <p class="small" data-i18n="tr.create_first">Create your first lesion record to start tracking changes over time.</p>
+      </div>
+    {% endif %}
+
+    <div class="medical-disclaimer mt-4" data-i18n="tr.disclaimer">
+      Important: The tracker is a personal observation aid. Image differences can be caused by lighting, distance, angle, and scale. It does not establish cancer progression.
+    </div>
+  </div>
+</section>
+{% endblock %}

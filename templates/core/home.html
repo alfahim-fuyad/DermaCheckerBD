@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}DermaCheckerBD — A Smarter Way to Understand Your Skin{% endblock %}
+
+{% block content %}
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="container-xl">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="hero-badge">
+          <i data-lucide="sparkles" style="width:14px;height:14px;"></i>
+          <span data-i18n="home.hero_badge">AI-ASSISTED SKIN LESION ANALYSIS</span>
+        </span>
+        <h1 class="hero-title">
+          <span data-i18n="home.hero_title">A Smarter Way to </span><span class="accent" data-i18n="home.hero_title_accent">Understand Your Skin</span>
+        </h1>
+        <p class="hero-lead" data-i18n="home.hero_lead">
+          DermaCheckerBD is an experimental research prototype that combines
+          image-quality checks, prediction-stability analysis, and multi-image
+          disagreement detection. It is <strong>not a medical diagnosis</strong>
+          and does not replace a dermatologist.
+        </p>
+        <div class="hero-cta-row">
+          <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary">
+            <i data-lucide="zap" style="width:16px;height:16px;" class="me-1"></i>
+            <span data-i18n="home.hero_cta_scan">Start Skin Scan</span>
+          </a>
+          <a href="{% url 'core:how_it_works' %}" class="btn app-btn-outline" data-i18n="home.hero_cta_how">
+            Explore How It Works
+          </a>
+        </div>
+        <div class="hero-privacy">
+          <i data-lucide="shield-check"></i>
+          <span data-i18n="home.hero_privacy">Privacy-respecting · Images are not sent to third-party LLMs by default</span>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="scan-panel" data-scan-sequence aria-label="Decorative scanning animation. No real prediction is being made." data-i18n-aria="aria.scan_animation">
+          <div class="scan-image scan-image-carousel" aria-hidden="true">
+            <img class="scan-demo-image is-active" src="{% static 'images/scan-demo/ISIC_0024458_1791984676098.jpg' %}" alt="" draggable="false" fetchpriority="high">
+            <img class="scan-demo-image" src="{% static 'images/scan-demo/ISIC_0024415_1791984695578.jpg' %}" alt="" draggable="false">
+            <img class="scan-demo-image" src="{% static 'images/scan-demo/ISIC_0029597_1791984715374.jpg' %}" alt="" draggable="false">
+            <img class="scan-demo-image" src="{% static 'images/scan-demo/ISIC_0030893_1791984735809.jpg' %}" alt="" draggable="false">
+            <img class="scan-demo-image" src="{% static 'images/scan-demo/ISIC_0031125_1791984751692.jpg' %}" alt="" draggable="false">
+          </div>
+          <div class="scan-demo-label" data-i18n="home.demo_label">DEMO · no live scan</div>
+          <div class="scan-corners">
+            <span class="scan-corner tl"></span>
+            <span class="scan-corner tr"></span>
+            <span class="scan-corner bl"></span>
+            <span class="scan-corner br"></span>
+          </div>
+          <div class="scan-line" data-scan-line aria-hidden="true"></div>
+          <div class="scan-status">
+            <span class="scan-status-pill"><span class="dot"></span> <span data-i18n="home.scan_quality">Image Quality Check</span></span>
+            <span class="scan-status-pill"><span class="dot"></span> <span data-i18n="home.scan_analyzing">Analyzing Image</span></span>
+            <span class="scan-status-pill"><span class="dot"></span> <span data-i18n="home.scan_reliability">Reliability Check</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRUST & CAPABILITY HIGHLIGHTS ============ -->
+<section class="section">
+  <div class="container-xl">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> <span data-i18n="home.capabilities.eyebrow">Capabilities</span></span>
+      <h2 class="title" data-i18n="home.capabilities.title">Built for responsible, transparent AI</h2>
+      <p class="subtitle" data-i18n="home.capabilities.subtitle">
+        We surface limitations on every prediction. No fabricated accuracy numbers,
+        no medical endorsements, no fake confidence.
+      </p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="image"></i></div>
+          <h3 class="feature-title" data-i18n="home.cap.image.title">Image quality assessment</h3>
+          <p class="feature-desc" data-i18n="home.cap.image.desc">Detects blur, exposure, framing, and skin-plausibility before prediction runs.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="activity"></i></div>
+          <h3 class="feature-title" data-i18n="home.cap.stability.title">Prediction stability</h3>
+          <p class="feature-desc" data-i18n="home.cap.stability.desc">Compares predictions across mild transforms. Stability ≠ correctness.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="layers"></i></div>
+          <h3 class="feature-title" data-i18n="home.cap.multi.title">Multi-image comparison</h3>
+          <p class="feature-desc" data-i18n="home.cap.multi.desc">Upload multiple photos of the same lesion and surface disagreement alerts.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="lock"></i></div>
+          <h3 class="feature-title" data-i18n="home.cap.privacy.title">Privacy-conscious design</h3>
+          <p class="feature-desc" data-i18n="home.cap.privacy.desc">Image bytes never touch the chatbot API unless you explicitly share them.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section bg-soft">
+  <div class="container-xl">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="map" style="width:14px;height:14px;"></i> <span data-i18n="home.how.eyebrow">Workflow</span></span>
+      <h2 class="title" data-i18n="home.how.title">How it works</h2>
+      <p class="subtitle" data-i18n="home.how.subtitle">Three short steps. Every step keeps the user in the loop about what the model can and cannot do.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="app-card how-step">
+          <div class="how-step-num">1</div>
+          <h3 class="how-step-title" data-i18n="home.how.step1.title">Upload a skin lesion image</h3>
+          <p class="how-step-desc" data-i18n="home.how.step1.desc">Drag-and-drop or pick a clear JPG/PNG/WEBP photo. Camera capture is supported on mobile.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="app-card how-step">
+          <div class="how-step-num">2</div>
+          <h3 class="how-step-title" data-i18n="home.how.step2.title">Quality + stability analysis</h3>
+          <p class="how-step-desc" data-i18n="home.how.step2.desc">We check image quality and run the prediction across mild transforms to surface instability.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="app-card how-step">
+          <div class="how-step-num">3</div>
+          <h3 class="how-step-title" data-i18n="home.how.step3.title">Review the experimental result</h3>
+          <p class="how-step-desc" data-i18n="home.how.step3.desc">See the predicted class, confidence, stability flag, and clear limitations of the result.</p>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-4">
+      <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary">
+        <i data-lucide="zap" style="width:16px;height:16px;" class="me-1"></i>
+        <span data-i18n="home.how.cta">Try the upload</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE SHOWCASE ============ -->
+<section class="section">
+  <div class="container-xl">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="layout-grid" style="width:14px;height:14px;"></i> <span data-i18n="home.features.eyebrow">Features</span></span>
+      <h2 class="title" data-i18n="home.features.title">A complete, practical toolkit</h2>
+      <p class="subtitle" data-i18n="home.features.subtitle">Six concrete features that go beyond basic image upload and prediction.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="image"></i></div>
+          <h3 class="feature-title" data-i18n="home.feature.photo.title">Smart Photo Guide</h3>
+          <p class="feature-desc" data-i18n="home.feature.photo.desc">Detects blurry, dark, or overexposed images and gives clear retake suggestions before prediction runs.</p>
+          <a class="feature-link" href="{% url 'photo_guide:quality_check' %}"><span data-i18n="home.feature.photo.link">Open Photo Guide</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="activity"></i></div>
+          <h3 class="feature-title" data-i18n="home.feature.reliability.title">AI Reliability Check</h3>
+          <p class="feature-desc" data-i18n="home.feature.reliability.desc">Runs predictions on mild image transforms and reports agreement — a stability signal, not a correctness score.</p>
+          <a class="feature-link" href="{% url 'reliability:check' %}"><span data-i18n="home.feature.reliability.link">Open Reliability</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="layers"></i></div>
+          <h3 class="feature-title" data-i18n="home.feature.multi.title">Multi-Image Disagreement</h3>
+          <p class="feature-desc" data-i18n="home.feature.multi.desc">Compare predictions across several photos of the same lesion and surface significant disagreement.</p>
+          <a class="feature-link" href="{% url 'multi_image:compare' %}"><span data-i18n="home.feature.multi.link">Compare images</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="calendar-clock"></i></div>
+          <h3 class="feature-title" data-i18n="home.feature.tracker.title">Lesion Follow-up Tracker</h3>
+          <p class="feature-desc" data-i18n="home.feature.tracker.desc">Save lesion photos with dates, view a timeline, compare two photos side by side. Private to your account.</p>
+          <a class="feature-link" href="{% url 'tracker:index' %}"><span data-i18n="home.feature.tracker.link">Open Tracker</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="message-circle"></i></div>
+          <h3 class="feature-title" data-i18n="home.feature.chatbot.title">Gemini AI Assistant</h3>
+          <p class="feature-desc" data-i18n="home.feature.chatbot.desc">A floating chatbot explains terms, confidence, and limitations in plain English or Bangla. Never diagnoses.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="app-card-feature">
+          <div class="feature-icon"><i data-lucide="clipboard-list"></i></div>
+          <h3 class="feature-title" data-i18n="home.feature.doctor_panel.title">Doctor Panel</h3>
+          <p class="feature-desc" data-i18n="home.feature.doctor_panel.desc">Authorized doctors and administrators can review follow-up cases, update case status, and generate serial reports.</p>
+          <a class="feature-link" href="{% url 'doctors:panel' %}"><span data-i18n="home.feature.doctor_panel.link">Open Doctor Panel</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ INTERACTIVE DEMO AREA ============ -->
+<section class="section bg-soft">
+  <div class="container-xl">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> <span data-i18n="home.demo.eyebrow">Interactive preview</span></span>
+      <h2 class="title" data-i18n="home.demo.title">What the result looks like</h2>
+      <p class="subtitle" data-i18n="home.demo.subtitle">Demonstration values only. Not a real analysis.</p>
+    </div>
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-4">
+        <div class="stat-block success">
+          <div class="stat-value">87<span style="font-size:0.55em;">/100</span></div>
+          <div class="stat-label" data-i18n="home.demo.quality">Image quality score</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-block">
+          <div class="stat-value">83%</div>
+          <div class="stat-label" data-i18n="home.demo.stability">Stability (agreement)</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-block warning">
+          <div class="stat-value">nv</div>
+          <div class="stat-label" data-i18n="home.demo.top_class">Top class (mock)</div>
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-muted mt-3 small">
+      <i data-lucide="info" style="width:14px;height:14px;vertical-align:-2px;"></i>
+      <span data-i18n="home.demo.note">Demonstration values. Not a real medical analysis.</span>
+    </p>
+  </div>
+</section>
+
+<!-- ============ RESPONSIBLE AI SECTION ============ -->
+<section class="section">
+  <div class="container-xl">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="section-head">
+          <span class="eyebrow"><i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> <span data-i18n="home.responsible.eyebrow">Responsible AI</span></span>
+          <h2 class="title" data-i18n="home.responsible.title">What this prototype is — and isn't</h2>
+        </div>
+        <div class="medical-disclaimer">
+          <p class="mb-2" data-i18n="home.responsible.p1">DermaCheckerBD is an experimental research prototype. It is not a medical device, not clinically validated, and not a substitute for professional dermatology evaluation.</p>
+          <p class="mb-0" data-i18n="home.responsible.p2">The model can be wrong even when it produces a high confidence score. Stability and multi-image agreement describe the model's behaviour, not whether the prediction is medically correct. If a lesion is changing, bleeding, growing, or otherwise concerning, please consult a qualified dermatologist promptly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section bg-soft">
+  <div class="container-xl">
+    <div class="section-head">
+      <span class="eyebrow"><i data-lucide="help-circle" style="width:14px;height:14px;"></i> <span data-i18n="home.faq.eyebrow">FAQ</span></span>
+      <h2 class="title" data-i18n="home.faq.title">Common questions</h2>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                <span data-i18n="home.faq.q1">What image formats can I upload?</span>
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+              <div class="accordion-body" data-i18n="home.faq.a1">
+                JPG, PNG, and WEBP up to 10 MB. We recommend a well-lit close-up
+                with the lesion centered. The Smart Photo Guide will warn you if
+                the image looks blurry, dark, or off-angle before the prediction runs.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                <span data-i18n="home.faq.q2">What does the confidence score mean?</span>
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body" data-i18n="home.faq.a2">
+                The confidence is the model's max softmax probability for the top
+                predicted class. A high number means the model is internally
+                confident in its guess — it does <strong>not</strong> mean the guess
+                is medically correct. Treat every prediction as unverified
+                information.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                <span data-i18n="home.faq.q3">Is my image sent to the chatbot?</span>
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body" data-i18n="home.faq.a3">
+                No. The floating chatbot only receives text. Image bytes are
+                processed by the Django backend's model service and are not
+                forwarded to the Gemini API unless you explicitly share a
+                prediction summary in chat — and even then, only the text summary
+                is sent, not the image.
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                <span data-i18n="home.faq.q4">Can DermaCheckerBD Diagnose Skin Cancer?</span>
+              </button>
+            </h2>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">
+                <p><strong><span data-i18n="home.faq.a4_intro">No. DermaCheckerBD is an AI-powered skin lesion analysis prototype designed to provide preliminary predictions and support medical review prioritization.</span></strong></p>
+                <p><span data-i18n="home.faq.a4_detail">It helps users understand AI-generated skin lesion predictions and organize cases that may require earlier medical attention. These predictions can assist in identifying cases for priority review, but they are not confirmed diagnoses and cannot determine a patient's actual medical urgency or treatment needs.</span></p>
+                <p class="mb-0"><strong data-i18n="home.faq.a4_important">Important:</strong> <span data-i18n="home.faq.a4_safety">DermaCheckerBD does not replace a qualified dermatologist, professional medical advice, or clinical evaluation. If a skin lesion is changing, bleeding, or concerning, seek medical attention promptly, regardless of the AI prediction.</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

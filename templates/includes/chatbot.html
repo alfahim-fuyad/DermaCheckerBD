@@ -1,0 +1,83 @@
+{% load static %}
+<!-- Floating Gemini chatbot — included on every page -->
+<div id="chatbotFab" class="chatbot-fab" aria-hidden="false">
+  <button id="chatbotToggle" type="button"
+          class="chatbot-fab-btn"
+          aria-label="Open DermaCheckerBD assistant"
+          data-i18n-aria="chatbot.open"
+          aria-controls="chatbotPanel"
+          aria-expanded="false">
+    <i data-lucide="message-circle" class="chatbot-fab-icon"></i>
+    <span class="chatbot-fab-pulse"></span>
+  </button>
+</div>
+
+<section id="chatbotPanel" class="chatbot-panel" role="dialog"
+         aria-label="DermaCheckerBD Assistant" data-i18n-aria="chatbot.name" aria-modal="false" hidden
+         data-chat-role="{{ chatbot_role }}"
+         data-chat-scope="{{ chatbot_scope }}"
+         data-message-url="{% url 'chatbot:message' %}">
+  <header class="chatbot-head">
+    <div class="chatbot-head-id">
+      <span class="chatbot-avatar" aria-hidden="true"><i data-lucide="bot"></i></span>
+      <div>
+        <div class="chatbot-name" data-i18n="chatbot.name">DermaCheckerBD Assistant</div>
+        <div class="chatbot-status">
+          <span class="chatbot-dot"></span>
+          {% if chatbot_role == "staff" %}
+            <span id="chatbotStatusText" data-i18n="chatbot.status_staff">Online · Aggregate staff view</span>
+          {% elif request.user.is_authenticated %}
+            <span id="chatbotStatusText" data-i18n="chatbot.status_private">Online · Your dashboard</span>
+          {% else %}
+            <span id="chatbotStatusText" data-i18n="chatbot.status_public">Online · Public information</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <button id="chatbotClear" type="button" class="chatbot-icon-btn"
+              aria-label="Clear conversation" data-i18n-aria="chatbot.clear" title="Clear conversation" data-i18n-title="chatbot.clear">
+        <i data-lucide="eraser"></i>
+      </button>
+      <button id="chatbotClose" type="button" class="chatbot-icon-btn"
+              aria-label="Close assistant" data-i18n-aria="chatbot.close" title="Close" data-i18n-title="chatbot.close">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="chatbotMessages" class="chatbot-messages" role="log" aria-live="polite" aria-atomic="false">
+    <div class="chatbot-msg chatbot-msg-bot">
+      <div class="chatbot-msg-bubble" {% if chatbot_role == "staff" %}data-i18n="chatbot.welcome_staff"{% elif request.user.is_authenticated %}data-i18n="chatbot.welcome_private"{% else %}data-i18n="chatbot.welcome_public"{% endif %}>
+        {% if chatbot_role == "staff" %}
+        I can answer public site questions and provide anonymized site-wide totals. I cannot access usernames or individual records.
+        {% elif request.user.is_authenticated %}
+        I can answer public site questions and summarize your own dashboard. I only see your aggregate prediction totals and class counts, not your images or another user's records. I don't diagnose.
+        {% else %}
+        I can answer questions about public information on this site. Sign in to ask about your own dashboard. I don't diagnose.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <form id="chatbotForm" class="chatbot-form">
+    <input type="hidden" name="csrfmiddlewaretoken" id="chatbotCsrf" value="{{ csrf_token }}">
+    <input type="text" id="chatbotInput" name="message" class="chatbot-input"
+           autocomplete="off" maxlength="600"
+           data-i18n-ph="chatbot.placeholder"
+           placeholder="Ask about confidence, reliability, image quality…" aria-label="Message" data-i18n-aria="aria.message_input">
+    <button id="chatbotSend" type="submit" class="chatbot-send"
+            aria-label="Send message" data-i18n-aria="chatbot.send">
+      <i data-lucide="send"></i>
+    </button>
+  </form>
+
+  {% if not chatbot_configured %}
+  <div class="chatbot-offline-note" data-i18n="chatbot.offline">
+    <i data-lucide="info" class="me-1"></i>
+    Offline mode: GEMINI_API_KEY not configured. Replies are pre-written.
+  </div>
+  {% endif %}
+</section>
+
+<script src="{% static 'js/chatbot.js' %}" defer></script>

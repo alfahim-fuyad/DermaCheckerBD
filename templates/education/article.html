@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ article.title }} · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <nav aria-label="breadcrumb" data-i18n-aria="aria.breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'education:index' %}" data-i18n="edu.breadcrumb_library">Skin health library</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ article.title|truncatewords:6 }}</li>
+      </ol>
+    </nav>
+
+    <span class="app-badge mb-3"><i data-lucide="{{ article.icon }}" style="width:14px;height:14px;"></i> <span data-i18n="edu.article">Article</span></span>
+    <h1 class="mb-2">{{ article.title }}</h1>
+    <p class="text-muted mb-4">{{ article.summary }}</p>
+
+    <div class="row g-4">
+      <div class="col-lg-8">
+        {% for section in article.body %}
+          <div class="app-card mb-3">
+            <h2 class="h5 mb-3">{{ section.heading }}</h2>
+            <p>{{ section.text }}</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="col-lg-4">
+        <div class="app-card mb-4">
+          <h2 class="h6 mb-3" data-i18n="edu.more_in_library">More in this library</h2>
+          <ul class="list-unstyled small mb-0">
+            {% for a in all_articles %}
+              <li class="border-bottom py-2">
+                <a href="{% url 'education:article' a.slug %}" class="d-flex align-items-center text-decoration-none {% if a.slug == article.slug %}fw-bold{% endif %}">
+                  <i data-lucide="{{ a.icon }}" style="width:14px;height:14px;" class="me-2 text-muted"></i>
+                  {{ a.title|truncatewords:8 }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="app-card mb-4">
+          <h2 class="h6 mb-3" data-i18n="edu.references">References</h2>
+          <ul class="list-unstyled small mb-0">
+            {% for label, url in article.references %}
+              <li class="mb-2">
+                <i data-lucide="external-link" style="width:12px;height:12px;" class="me-1 text-muted"></i>
+                <a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="medical-disclaimer" data-i18n="edu.educational_content">
+          <strong>Reminder:</strong> educational content. Consult a
+          dermatologist for personal medical advice.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

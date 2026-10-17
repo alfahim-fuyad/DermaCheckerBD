@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Clear prediction history · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 42rem;">
+    <h1 class="mb-3" data-i18n="history.clear_confirm_title">Clear all prediction history?</h1>
+    <div class="app-card">
+      <p>
+        <span data-i18n="history.clear_confirm_count">This will permanently delete</span>
+        <strong>{{ record_count }}</strong>
+        <span data-i18n="history.clear_confirm_records">prediction record(s) and their stored images.</span>
+      </p>
+      <div class="medical-disclaimer" data-i18n="history.clear_confirm_warning">
+        This cannot be undone. Only records belonging to your account or this browser session will be removed.
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn app-btn-outline-danger mt-3" {% if not record_count %}disabled{% endif %}>
+          <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+          <span data-i18n="history.clear_all">Clear all</span>
+        </button>
+        <a href="{% url 'predictor:history' %}" class="btn app-btn-outline mt-3" data-i18n="common.cancel">Cancel</a>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

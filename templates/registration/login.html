@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load static crispy_forms_tags %}
+
+{% block title %}Sign in · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <span class="app-badge mb-3"><i data-lucide="log-in" style="width:14px;height:14px;"></i> <span data-i18n="auth.welcome_back">Welcome back</span></span>
+  <h1 data-i18n="auth.sign_in">Sign in</h1>
+  <p class="auth-sub" data-i18n="auth.sign_in_sub">Access your saved prediction history and lesion tracker.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn app-btn-primary w-100 mt-2" data-i18n="auth.sign_in">Sign in</button>
+  </form>
+
+  <hr class="my-4">
+  <p class="text-center mb-0 text-muted small">
+    <span data-i18n="auth.no_account">No account?</span> <a href="{% url 'account_signup' %}" data-i18n="auth.create_account">Create one</a>
+  </p>
+</div>
+{% endblock %}

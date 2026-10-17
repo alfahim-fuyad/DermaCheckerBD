@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}How It Works · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="map" style="width:14px;height:14px;"></i> <span data-i18n="hiw.eyebrow">Workflow</span></span>
+    <h1 class="mb-3" data-i18n="hiw.title">How DermaCheckerBD works</h1>
+    <p class="lead text-muted" data-i18n="hiw.lead">
+      From photo upload to optional follow-up, here is what to expect.
+    </p>
+    <hr class="my-4">
+
+    <h2 data-i18n="hiw.step1">1. Take and upload a photo</h2>
+    <p data-i18n="hiw.step1_body_1">
+      Upload a clear JPG, PNG, or WEBP photo (up to 10 MB). On supported mobile
+      browsers, you can take a photo directly.
+    </p>
+    <p data-i18n="hiw.step1_body_2">
+      Before continuing, the app checks that the image can be opened and used.
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step2">2. Check photo quality</h2>
+    <p data-i18n="hiw.step2_body">
+      The Smart Photo Guide checks for common issues with blur, lighting, and
+      framing. If a photo may be hard to assess, it suggests taking another.
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step3">3. Review the experimental result</h2>
+    <p data-i18n="hiw.step3_body_1">
+      The app analyzes the photo and shows a predicted category with a confidence
+      score. This is experimental information, not a diagnosis, and it can be wrong.
+    </p>
+    <p data-i18n="hiw.step3_body_2">
+      Read the limitations shown with the result and consult a qualified
+      dermatologist if you have concerns.
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step4">4. Check result stability (optional)</h2>
+    <p data-i18n="hiw.step4_body_1">
+      The Reliability Check compares the result across small changes to the photo
+      and shows how consistently the same category appears.
+    </p>
+    <p data-i18n="hiw.step4_body_2">
+      Lower agreement means the results varied across these checks; it does not
+      measure medical correctness.
+    </p>
+    <p>
+      <strong data-i18n="hiw.step4_note">Even 100% agreement does not mean the prediction is correct.</strong>
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step5">5. Compare multiple photos (optional)</h2>
+    <p data-i18n="hiw.step5_body">
+      Compare results from several photos of the same lesion. The app highlights
+      when results differ; a difference is not a diagnosis or proof that a lesion
+      has changed.
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step6">6. Ask the assistant</h2>
+    <p data-i18n="hiw.step6_body">
+      Ask the on-page assistant about terms, confidence scores, and the app's
+      limitations. It cannot diagnose or recommend treatment, and your uploaded
+      image is not sent to the assistant.
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step7">7. Save observations (signed-in users)</h2>
+    <p data-i18n="hiw.step7_body">
+      Signed-in users can save photos and dates to a private follow-up timeline.
+      This helps organize observations over time; it does not determine whether a
+      condition has changed.
+    </p>
+
+    <h2 class="mt-4" data-i18n="hiw.step8">8. Doctor Panel (authorized users)</h2>
+    <p data-i18n="hiw.step8_body">
+      Authorized doctors and administrators can review follow-up cases, update
+      review status, and generate serial reports. This supports follow-up
+      workflows; it does not provide a diagnosis.
+    </p>
+
+    <div class="medical-disclaimer mt-4" data-i18n="hiw.limitations">
+      <strong>Important:</strong> DermaCheckerBD is experimental, is not
+      medically validated, and cannot replace professional care. Photo comparisons
+      can be affected by lighting, distance, angle, and scale. If a lesion is
+      changing, bleeding, growing, or painful, consult a qualified dermatologist.
+    </div>
+  </div>
+</section>
+{% endblock %}

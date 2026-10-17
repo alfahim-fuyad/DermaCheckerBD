@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Similar Case Explorer · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="grid-2x2" style="width:14px;height:14px;"></i> <span data-i18n="sc.experimental">Experimental</span></span>
+    <h1 class="mb-2" data-i18n="sc.title">Similar Case Explorer</h1>
+    <p class="text-muted" data-i18n="sc.subtitle">Visually similar reference images from the dataset. <strong>Similarity is not a diagnosis.</strong></p>
+    <hr class="my-4">
+
+    {% if error %}
+      <div class="medical-disclaimer mb-4"><strong data-i18n="sc.upload_rejected">Upload rejected:</strong> {{ error }}</div>
+    {% endif %}
+
+    <div class="app-card mb-4">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="upload-area" onclick="document.getElementById('imageInput').click()" role="button" tabindex="0">
+          <div class="upload-icon"><i data-lucide="grid-2x2"></i></div>
+          <p class="fw-semibold mb-1" data-i18n="sc.upload_text">Upload an image to find similar cases</p>
+          <p class="upload-hint" data-i18n="sc.upload_hint">JPG, PNG, WEBP · max 10 MB</p>
+          <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp" hidden>
+        </div>
+        <button type="submit" class="btn app-btn-primary w-100 mt-3">
+          <i data-lucide="search" style="width:16px;height:16px;"></i> <span data-i18n="sc.find">Find similar cases</span>
+        </button>
+      </form>
+    </div>
+
+    {% if results %}
+      <h3 class="h6" data-i18n="sc.top_results">Top {{ results|length }} similar cases</h3>
+      <div class="row g-3">
+        {% for case in results %}
+          <div class="col-md-4">
+            <div class="app-card p-3">
+              <div class="fw-bold">{{ case.label|upper }}</div>
+              <div class="small text-muted"><span data-i18n="sc.similarity">Similarity</span>: {{ case.similarity|floatformat:2 }}</div>
+              <div class="small text-muted"><span data-i18n="sc.ref_id">Reference ID</span>: {{ case.image_id }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="medical-disclaimer mt-3" data-i18n="sc.disclaimer">
+        These are dataset images shown for exploration only. <strong>Visual similarity does NOT mean your lesion has the same diagnosis.</strong>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

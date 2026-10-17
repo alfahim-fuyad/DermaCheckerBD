@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Image Quality Checker · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="image" style="width:14px;height:14px;"></i> <span data-i18n="pg.eyebrow">Smart Photo Guide</span></span>
+    <h1 class="mb-2" data-i18n="pg.title">Image quality checker</h1>
+    <p class="text-muted" data-i18n="pg.subtitle">Check image quality first, then optionally continue to a separate prediction.</p>
+    <hr class="my-4">
+
+    {% if error %}
+      <div class="medical-disclaimer mb-4">
+        <strong><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-2px;"></i> <span data-i18n="common.upload_rejected">Upload rejected</span></strong>
+        <p class="mb-0" data-i18n-server>{{ error }}</p>
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="app-card">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="upload-area" id="dropZone" tabindex="0" role="group" aria-label="Image upload area" data-i18n-aria="aria.image_upload_area">
+              <div data-upload-empty>
+                <div class="upload-icon"><i data-lucide="image"></i></div>
+                <p class="fw-semibold mb-1" data-i18n="pg.drop_text">Drag &amp; drop an image to check quality</p>
+                <p class="upload-hint mb-0" data-i18n="pg.drop_hint">JPG, PNG, WEBP · max 10 MB</p>
+              </div>
+              <div class="upload-selected" data-upload-selected hidden>
+                <div class="upload-inline-preview"><img data-upload-preview alt="Selected image preview"></div>
+                <div class="upload-file-details">
+                  <span class="upload-status" data-upload-status role="status"></span>
+                  <strong class="upload-file-name" data-upload-filename></strong>
+                  <div class="upload-actions">
+                    <button type="button" class="btn app-btn-outline-primary btn-sm" data-upload-replace>
+                      <i data-lucide="refresh-cw" aria-hidden="true"></i><span data-i18n="upload.replace">Replace</span>
+                    </button>
+                    <button type="button" class="btn app-btn-outline-danger btn-sm" data-upload-remove>
+                      <i data-lucide="x" aria-hidden="true"></i><span data-i18n="upload.remove">Remove</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <p class="upload-error mb-0" data-upload-error role="alert" hidden></p>
+              <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp" hidden>
+            </div>
+            <button type="submit" class="btn app-btn-primary w-100 mt-3" id="qualitySubmit" disabled>
+              <i data-lucide="activity" style="width:16px;height:16px;"></i> <span data-i18n="pg.check_quality">Check quality</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        {% if image_data_url %}
+          <div class="app-card">
+            <h3 class="h6" data-i18n="pg.your_image">Your image</h3>
+            <div class="quality-preview-frame mt-2">
+              <img src="{{ image_data_url }}"
+                   {% if not enhancement_report or not enhancement_report.applied %}id="qualityImagePreview"{% endif %}
+                   alt="Uploaded image preview">
+            </div>
+          </div>
+        {% else %}
+          <div class="app-card">
+            <h3 class="h6" data-i18n="pg.what_we_check">What we check</h3>
+            <ul class="small text-muted mb-0">
+              <li data-i18n="pg.check_blur">Sharpness / blur (Laplacian variance)</li>
+              <li data-i18n="pg.check_brightness">Brightness (mean intensity)</li>
+              <li data-i18n="pg.check_exposure">Exposure (clipped highlights/shadows)</li>
+              <li data-i18n="pg.check_aspect">Aspect ratio / framing</li>
+              <li data-i18n="pg.check_skin">Skin plausibility (coarse skin-tone heuristic)</li>
+            </ul>
+            <div class="medical-disclaimer mt-3" data-i18n="pg.disclaimer">
+              A high quality score does not guarantee the image is medically suitable for diagnosis.
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if report %}
+      <div class="app-card mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 mb-0"><i data-lucide="bar-chart-3" style="width:18px;height:18px;"></i> <span data-i18n="pg.quality_report">Image quality report</span></h2>
+          <div class="stat-block d-inline-block text-center" style="padding:0.4rem 0.75rem;">
+            <div class="stat-value">{{ report.overall_score|floatformat:1 }}<span style="font-size:0.5em;">/100</span></div>
+            <div class="stat-label">{{ report.suitable|yesno:"Suitable,Not suitable" }}</div>
+          </div>
+        </div>
+        <div>
+          {% for c in report.checks %}
+          <div class="qcheck-item">
+            <div class="qcheck-icon {{ c.passed|yesno:'pass,fail' }}">
+              {% if c.passed %}<i data-lucide="check"></i>{% else %}<i data-lucide="x"></i>{% endif %}
+            </div>
+            <div class="flex-grow-1">
+              <div class="qcheck-label"><span data-i18n="quality.label.{{ c.name }}">{{ c.label }}</span> <span class="small text-muted">({% if c.value %}{{ c.value|floatformat:1 }}{% else %}—{% endif %})</span></div>
+              <div class="qcheck-msg" data-quality-name="{{ c.name }}" data-quality-message="{{ c.message }}">{{ c.message }}</div>
+              {% if c.suggestion %}<div class="qcheck-sug" data-quality-name="{{ c.name }}" data-quality-suggestion="{{ c.suggestion }}">{{ c.suggestion }}</div>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if report.suggestions %}
+          <div class="mt-3">
+            <strong data-i18n="pg.suggestions">Suggestions for a better photo:</strong>
+            <ul class="small text-muted mb-0">
+              {% for s in report.suggestions %}<li>{{ s }}</li>{% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if enhancement_report and enhancement_report.applied %}
+      <div class="app-card mt-4">
+        <h2 class="h5 mb-3"><i data-lucide="sliders-horizontal" style="width:18px;height:18px;"></i> <span data-i18n="pg.before_after">Before / after enhancement preview</span></h2>
+        <p class="text-muted small mb-3" data-i18n="pg.enhance_explain">
+          The image-quality service flagged mild brightness or contrast issues.
+          Below is a preview of a mild, non-destructive enhancement. The original
+          image is always preserved; enhancement does not improve diagnostic accuracy.
+        </p>
+        <div class="mb-4">
+          {% include "photo_guide/_quality_image_customizer.html" %}
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="text-center">
+              <h3 class="h6 mb-2" data-i18n="pg.original">Original</h3>
+              {% if image_data_url %}
+                <img src="{{ image_data_url }}" alt="Original uploaded image"
+                     class="img-fluid rounded" style="max-height:300px; border:1px solid var(--border);">
+              {% endif %}
+              <p class="small text-muted mt-2 mb-0">
+                <span data-i18n="pg.brightness">Brightness</span> {{ enhancement_report.brightness_before|floatformat:1 }}
+                · <span data-i18n="pg.contrast">Contrast</span> {{ enhancement_report.contrast_before|floatformat:1 }}
+              </p>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="text-center">
+              <h3 class="h6 mb-2" data-i18n="pg.enhanced">Enhanced preview</h3>
+              {% if enhanced_data_url %}
+                <img src="{{ enhanced_data_url }}" alt="Enhanced preview"
+                     id="qualityImagePreview"
+                     class="img-fluid rounded" style="max-height:300px; border:1px solid var(--border);">
+              {% endif %}
+              <p class="small text-muted mt-2 mb-0">
+                <span data-i18n="pg.brightness">Brightness</span> {{ enhancement_report.brightness_after|floatformat:1 }}
+                · <span data-i18n="pg.contrast">Contrast</span> {{ enhancement_report.contrast_after|floatformat:1 }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <strong data-i18n="pg.operations_applied">Operations applied:</strong>
+          <ul class="small text-muted mb-0">
+            {% for op in enhancement_report.operations %}
+              <li>
+                <code>{{ op.name }}</code> — {{ op.reason }}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="medical-disclaimer mt-3 mb-0" data-i18n="pg.enhance_note">
+          The enhanced image preview will be sent directly to prediction when you continue. Enhancement does not improve diagnostic accuracy.
+        </div>
+        <div class="quality-image-actions mt-4 pt-3 border-top">
+          {% include "photo_guide/_quality_image_actions.html" %}
+        </div>
+      </div>
+    {% elif image_data_url %}
+      <div class="app-card mt-4">
+        {% include "photo_guide/_quality_image_customizer.html" %}
+        <div class="quality-image-actions mt-4 pt-3 border-top">
+          {% include "photo_guide/_quality_image_actions.html" %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% include "predictor/_prediction_overlay.html" %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/image-upload.js' %}" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var submit = document.getElementById('qualitySubmit');
+    window.setupImageUpload({
+      dropId: 'dropZone',
+      inputId: 'imageInput',
+      onFile: function (file) { submit.disabled = !file; }
+    });
+
+    var runButton = document.getElementById('runPredictionButton');
+    var predictionForm = document.getElementById('qualityPredictionForm');
+    var predictionName = document.getElementById('qualityPredictionName');
+    var imageNameInput = document.getElementById('qualityImageName');
+    var transferError = document.getElementById('predictionTransferError');
+    var overlay = document.getElementById('predictionOverlay');
+    var scanImage = document.getElementById('predictionScanImage');
+    var stages = document.querySelectorAll('#predictionStages .prediction-stage');
+    var stageTimers = [];
+    var previewImage = document.getElementById('qualityImagePreview');
+    var brightness = document.getElementById('qualityBrightness');
+    var contrast = document.getElementById('qualityContrast');
+    var brightnessValue = document.getElementById('qualityBrightnessValue');
+    var contrastValue = document.getElementById('qualityContrastValue');
+    var resetAdjustments = document.getElementById('resetQualityAdjustments');
+    var downloadImage = document.getElementById('downloadQualityImage');
+    var customizerImage = new Image();
+    var customizeCanvas = document.createElement('canvas');
+    var customizeContext = customizeCanvas.getContext('2d');
+    var customized = false;
+    var automaticDataUrl = runButton ? runButton.dataset.imageUrl : '';
+    var baseDataUrl = runButton
+      ? (runButton.dataset.customizerUrl || automaticDataUrl)
+      : '';
+    var sourceName = runButton ? (runButton.dataset.fileName || 'skin-image') : 'skin-image';
+    var fallbackName = sourceName.replace(/[\\/]/g, '_').replace(/\.[^.]+$/, '') || 'skin-image';
+    var isSubmitting = false;
+
+    function currentImageName() {
+      return (imageNameInput && imageNameInput.value.trim()) || fallbackName;
+    }
+
+    function safeImageStem() {
+      return currentImageName().replace(/[\\/]/g, '_').replace(/\.[^.]+$/, '') || 'skin-image';
+    }
+
+    function syncImageName() {
+      var name = currentImageName();
+      if (predictionName) predictionName.value = name;
+      if (runButton) runButton.dataset.imageName = name;
+      if (downloadImage) {
+        downloadImage.download = safeImageStem() + (customized ? '-customized' : '') + '.jpg';
+      }
+    }
+
+    function dataUrlBytes(dataUrl) {
+      var comma = dataUrl.indexOf(',');
+      return comma < 0 ? Infinity : Math.ceil((dataUrl.length - comma - 1) * 0.75);
+    }
+
+    function updateCustomizedImage() {
+      if (!runButton || !brightness || !contrast || !customizeContext || !customizerImage.complete) return;
+      var brightnessPercent = Number(brightness.value);
+      var contrastPercent = Number(contrast.value);
+      if (brightnessValue) brightnessValue.value = brightnessPercent + '%';
+      if (contrastValue) contrastValue.value = contrastPercent + '%';
+      if (previewImage) {
+        previewImage.style.filter = 'brightness(' + brightnessPercent + '%) contrast(' + contrastPercent + '%)';
+      }
+
+      customized = brightnessPercent !== 100 || contrastPercent !== 100;
+      if (!customized) {
+        runButton.dataset.imageUrl = automaticDataUrl || baseDataUrl;
+        runButton.disabled = false;
+        if (downloadImage) {
+          downloadImage.href = baseDataUrl;
+        }
+        syncImageName();
+        if (transferError) transferError.hidden = true;
+        return;
+      }
+
+      customizeCanvas.width = customizerImage.naturalWidth;
+      customizeCanvas.height = customizerImage.naturalHeight;
+      customizeContext.filter = 'brightness(' + brightnessPercent + '%) contrast(' + contrastPercent + '%)';
+      customizeContext.drawImage(customizerImage, 0, 0);
+      customizeContext.filter = 'none';
+      var dataUrl;
+      for (var quality of [0.88, 0.78, 0.68]) {
+        dataUrl = customizeCanvas.toDataURL('image/jpeg', quality);
+        if (dataUrlBytes(dataUrl) <= 10 * 1024 * 1024 - 64 * 1024) break;
+      }
+      if (dataUrlBytes(dataUrl) > 10 * 1024 * 1024 - 64 * 1024) {
+        runButton.disabled = true;
+        if (transferError) transferError.hidden = false;
+        return;
+      }
+      runButton.disabled = false;
+      runButton.dataset.imageUrl = dataUrl;
+      if (downloadImage) {
+        downloadImage.href = dataUrl;
+      }
+      syncImageName();
+      if (transferError) transferError.hidden = true;
+    }
+
+    if (baseDataUrl) {
+      customizerImage.onload = updateCustomizedImage;
+      customizerImage.src = baseDataUrl;
+    }
+    if (brightness) brightness.addEventListener('input', updateCustomizedImage);
+    if (contrast) contrast.addEventListener('input', updateCustomizedImage);
+    if (imageNameInput) imageNameInput.addEventListener('input', syncImageName);
+    syncImageName();
+    if (resetAdjustments) {
+      resetAdjustments.addEventListener('click', function () {
+        if (brightness) brightness.value = '100';
+        if (contrast) contrast.value = '100';
+        updateCustomizedImage();
+      });
+    }
+
+    function resetPredictionProgress() {
+      isSubmitting = false;
+      overlay.hidden = true;
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if (scanImage) {
+        scanImage.removeAttribute('src');
+        scanImage.hidden = true;
+      }
+      stages.forEach(function (stage, index) {
+        stage.classList.remove('is-active', 'is-done');
+        if (index === 0) stage.classList.add('is-active');
+      });
+      stageTimers.forEach(clearTimeout);
+      stageTimers = [];
+      if (runButton) runButton.disabled = false;
+      var label = document.getElementById('runPredictionLabel');
+      if (label) label.textContent = window.DERMA && window.DERMA.t
+        ? window.DERMA.t('pg.run_prediction', 'Run prediction on this image')
+        : 'Run prediction on this image';
+    }
+
+    function showTransferError(message) {
+      if (!transferError) return;
+      transferError.textContent = message || (window.DERMA && window.DERMA.t
+        ? window.DERMA.t('pg.transfer_error', 'The image could not be prepared for prediction. Please try uploading it again.')
+        : 'The image could not be prepared for prediction. Please try uploading it again.');
+      transferError.hidden = false;
+    }
+
+    function startPredictionProgress() {
+      isSubmitting = true;
+      if (scanImage) {
+        scanImage.src = runButton.dataset.imageUrl || baseDataUrl;
+        scanImage.hidden = false;
+      }
+      overlay.hidden = false;
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      [1500, 3000, 5500].forEach(function (delay, index) {
+        stageTimers.push(setTimeout(function () {
+          stages[index].classList.remove('is-active');
+          stages[index].classList.add('is-done');
+          stages[index + 1].classList.add('is-active');
+        }, delay));
+      });
+    }
+
+    if (runButton && predictionForm) {
+      runButton.addEventListener('click', async function () {
+        if (isSubmitting) return;
+        var dataUrl = runButton.dataset.imageUrl || baseDataUrl;
+        var match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+        if (!match || !window.fetch || !window.FormData || !window.Blob) {
+          showTransferError();
+          return;
+        }
+        var timeout;
+        try {
+          var binary = atob(match[2]);
+          var bytes = new Uint8Array(binary.length);
+          for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          var stem = safeImageStem();
+          var suffix = customized ? '-customized' : (runButton.dataset.enhanced === 'true' ? '-enhanced' : '');
+          var extension = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp'
+          }[match[1]] || 'jpg';
+          var filename = stem + suffix + '.' + extension;
+
+          var formData = new FormData(predictionForm);
+          formData.set('image_name', currentImageName());
+          formData.append('image', new Blob([bytes], { type: match[1] }), filename);
+          runButton.disabled = true;
+          var label = document.getElementById('runPredictionLabel');
+          if (label) label.textContent = window.DERMA && window.DERMA.t
+            ? window.DERMA.t('pg.preparing', 'Preparing image…')
+            : 'Preparing image…';
+          if (transferError) transferError.hidden = true;
+          startPredictionProgress();
+
+          var controller = window.AbortController ? new AbortController() : null;
+          timeout = setTimeout(function () {
+            if (controller) controller.abort();
+          }, 120000);
+          var response = await fetch(predictionForm.action, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin',
+            signal: controller ? controller.signal : undefined
+          });
+          clearTimeout(timeout);
+          if (response.redirected) {
+            window.location.assign(response.url);
+            return;
+          }
+
+          var responseHtml = await response.text();
+          var responseDocument = new DOMParser().parseFromString(responseHtml, 'text/html');
+          var serverMessage = responseDocument.querySelector('.medical-disclaimer [data-i18n-server]')
+            || responseDocument.querySelector('.medical-disclaimer p');
+          resetPredictionProgress();
+          showTransferError(serverMessage && serverMessage.textContent.trim());
+        } catch (error) {
+          clearTimeout(timeout);
+          resetPredictionProgress();
+          showTransferError(error.name === 'AbortError'
+            ? (window.DERMA && window.DERMA.t
+              ? window.DERMA.t('pg.transfer_timeout', 'Prediction request timed out. Please try again.')
+              : 'Prediction request timed out. Please try again.')
+            : (window.DERMA && window.DERMA.t
+              ? window.DERMA.t('pg.transfer_network_error', 'Image upload failed. Check your connection and try again.')
+              : 'Image upload failed. Check your connection and try again.'));
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

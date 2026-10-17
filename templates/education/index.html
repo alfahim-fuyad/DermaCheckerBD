@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Skin Health Library · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 64rem;">
+    <span class="app-badge mb-3"><i data-lucide="book-open" style="width:14px;height:14px;"></i> <span data-i18n="edu.eyebrow">Skin health library</span></span>
+    <h1 class="mb-2" data-i18n="edu.title">Skin condition information</h1>
+    <p class="text-muted mb-4" data-i18n="edu.subtitle">
+      Educate yourself about the seven skin-lesion classes that the HAM10000
+      dataset — the data our model was trained on — recognises. This is general
+      educational information from publicly available dermatology references
+      (AAD, CDC, Skin Cancer Foundation, ISIC), not a diagnosis.
+    </p>
+    <div class="medical-disclaimer mb-4" data-i18n="edu.disclaimer">
+      <strong>Important:</strong> the model's prediction only tells you which
+      class an image <em>looks most like</em>. It does <strong>not</strong>
+      confirm that you have that condition. Always confirm any concerning
+      lesion with a qualified dermatologist.
+    </div>
+
+    <div class="row g-4">
+      {% for c in classes %}
+        <div class="col-md-6 col-lg-4">
+          <a href="{% url 'education:detail' c.code %}" class="education-class-card education-class-card--{{ c.category|slugify }} app-card-feature text-decoration-none d-block h-100">
+            <figure class="education-class-image-panel">
+              <img
+                src="{% static 'images/classes/' %}{{ c.code }}.png"
+                alt="Example image for {{ c.short_name }}"
+                loading="lazy"
+                decoding="async">
+            </figure>
+            <div class="education-class-content">
+              <div class="education-class-meta">
+                <span class="education-class-code"><code>{{ c.code|upper }}</code></span>
+                <span class="education-class-category" data-i18n-category="{{ c.category }}">{% if c.category == 'pre malignant' %}Pre-malignant{% else %}{{ c.category|title }}{% endif %}</span>
+              </div>
+              <h3 class="feature-title" data-i18n="class-name.{{ c.code }}">{{ c.short_name }}</h3>
+              <p class="text-muted small mb-2" lang="bn">{{ c.bangla_name }}</p>
+              <p class="feature-desc">{{ c.overview|truncatewords:22 }}</p>
+              <p class="education-image-caption" data-i18n="edu.class_image_caption">Example only — not a diagnosis.</p>
+              <span class="feature-link" data-i18n="edu.read_more">Read more</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if articles %}
+      <hr class="my-5">
+
+      <span class="app-badge mb-3"><i data-lucide="library" style="width:14px;height:14px;"></i> <span data-i18n="edu.general_health">General skin health</span></span>
+      <h2 class="mb-3" data-i18n="edu.guides_title">Practical skin care guides</h2>
+      <p class="text-muted mb-4" data-i18n="edu.guides_sub">
+        Beyond the seven HAM10000 classes, here are short, evidence-based
+        guides on sun protection, self-examination, and when to seek
+        professional care.
+      </p>
+      <div class="row g-4">
+        {% for a in articles %}
+          <div class="col-md-6">
+            <a href="{% url 'education:article' a.slug %}" class="app-card-feature text-decoration-none d-block h-100">
+              <div class="feature-icon">
+                <i data-lucide="{{ a.icon }}"></i>
+              </div>
+              <h3 class="feature-title">{{ a.title }}</h3>
+              <p class="feature-desc">{{ a.summary }}</p>
+              <span class="feature-link" data-i18n="edu.read_article">Read article</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

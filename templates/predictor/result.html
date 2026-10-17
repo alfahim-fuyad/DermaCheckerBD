@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Prediction result · {{ record.predicted_name }} · DermaCheckerBD{% endblock %}
+
+{% block extra_head %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/predictor-result.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="prediction-report">
+  <div class="container-xl report-container">
+    <header class="report-heading">
+      <div>
+        <p class="report-eyebrow"><span data-i18n="result.eyebrow">Saved analysis</span> <span aria-hidden="true">·</span> <span data-i18n="result.single_image">Single image</span></p>
+        <h1 data-i18n="result.title">Prediction result</h1>
+        <p class="report-meta">
+          <span data-i18n="result.reference">Reference</span> <strong>{{ record.reference_id }}</strong>
+          <span aria-hidden="true">·</span>
+          {{ record.created_at|date:"M j, Y · H:i" }}
+        </p>
+      </div>
+      <div class="report-toolbar" aria-label="Report actions" data-i18n-aria="aria.report_actions">
+        <a href="{% url 'predictor:pdf_report' record.reference_id %}" class="report-button report-button-primary">
+          <i data-lucide="download" aria-hidden="true"></i>
+          <span data-i18n="result.download_pdf">Download PDF</span>
+        </a>
+        <button type="button" class="report-button" onclick="window.print()">
+          <i data-lucide="printer" aria-hidden="true"></i>
+          <span data-i18n="result.print">Print</span>
+        </button>
+        {% if request.user == record.user %}
+          <a href="{% url 'predictor:delete' record.reference_id %}" class="report-button report-button-danger">
+            <i data-lucide="trash-2" aria-hidden="true"></i>
+            <span data-i18n="result.delete">Delete</span>
+          </a>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="report-hero-grid">
+      <section class="report-card report-image-card" aria-labelledby="original-image-title">
+        <div class="report-card-heading">
+          <h2 id="original-image-title"><i data-lucide="image" aria-hidden="true"></i> <span data-i18n="result.original_image">Original image</span></h2>
+          {% if quality %}
+            <span class="report-quality-chip {% if quality.suitable %}is-pass{% else %}is-caution{% endif %}">
+              {% if quality.suitable %}<span data-i18n="result.quality_passed">Quality checks passed</span>{% else %}<span data-i18n="result.quality_attention">Image needs attention</span>{% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <div class="report-image-frame">
+          <img src="{{ record.image.url }}" alt="Uploaded lesion image: {{ record.image_name }}">
+        </div>
+        <div class="report-image-caption">
+          <span>{{ record.image_name }}</span>
+          <span data-i18n="result.private_image">Private analysis image</span>
+        </div>
+      </section>
+
+      <section class="report-card report-summary-card" aria-labelledby="prediction-title">
+        <div class="report-category category-{{ record.category|slugify }}">
+          {% if record.category == "malignant" %}
+            <i data-lucide="alert-octagon" aria-hidden="true"></i>
+          {% elif record.category == "pre malignant" %}
+            <i data-lucide="alert-triangle" aria-hidden="true"></i>
+          {% else %}
+            <i data-lucide="shield-check" aria-hidden="true"></i>
+          {% endif %}
+          <span data-i18n="result.model_category">Model category:</span> <span data-i18n-category="{{ record.category }}">{{ record.category|title }}</span>
+        </div>
+
+        <div class="report-result-line">
+          <div>
+            <p class="report-class-code">{{ record.predicted_class|upper }}</p>
+            <h2 id="prediction-title" data-i18n="class-name.{{ record.predicted_class }}">{{ record.predicted_name }}</h2>
+          </div>
+          <div class="report-confidence">
+            <strong>{{ confidence_percent|floatformat:1 }}%</strong>
+            <span data-i18n="result.model_confidence">Model confidence</span>
+          </div>
+        </div>
+
+        <p class="report-confidence-note">
+          <i data-lucide="info" aria-hidden="true"></i>
+          <span data-i18n="result.confidence_note">This is the model’s maximum softmax output, not a probability that the result is correct.</span>
+        </p>
+        {% if confidence_percent < 50 %}
+          <div class="medical-disclaimer confidence-warning mt-3" role="alert">
+            <strong><span data-i18n="result.low_confidence_title">Low model confidence</span> ({{ confidence_percent|floatformat:1 }}%).</strong>
+            <p class="mb-0 mt-1" data-i18n="result.low_confidence_recommendation">
+              This experimental prediction is not a confirmed diagnosis. Please consult a qualified dermatologist; your doctor may recommend dermoscopy or other tests to evaluate the lesion.
+            </p>
+          </div>
+        {% endif %}
+        {% if record.category == "malignant" or record.category == "pre malignant" %}
+          <div class="report-result-warning mt-3" role="alert">
+            <i data-lucide="alert-triangle" aria-hidden="true"></i>
+            <div>
+              <strong data-i18n="result.professional_review_title">Professional review recommended</strong>
+              <p class="mb-0" data-i18n="result.professional_review_body">This experimental model flagged a concerning category. It is not a diagnosis; please arrange an assessment with a qualified dermatologist.</p>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="report-probabilities">
+          <div class="report-section-heading">
+            <h3 data-i18n="result.seven_class_probs">Seven-class probabilities</h3>
+            <span data-i18n="result.model_output">Model output</span>
+          </div>
+          {% if probability_rows %}
+            <div class="probability-list">
+              {% for row in probability_rows %}
+                <div class="probability-row">
+                  <div class="probability-label">
+                    <code>{{ row.code|upper }}</code>
+                    <span data-i18n="class-name.{{ row.code }}">{{ row.name }}</span>
+                  </div>
+                  <span class="probability-value">{{ row.percent|floatformat:2 }}%</span>
+                  <div class="probability-track"
+                       role="progressbar"
+                       aria-label="{{ row.code|upper }} model output"
+                       data-i18n-aria="result.probability_aria"
+                       data-i18n-param-code="{{ row.code|upper }}"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       aria-valuenow="{{ row.percent|floatformat:2 }}">
+                    <span style="width: {{ row.percent|floatformat:2 }}%;"></span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            <!-- Interactive Chart.js doughnut visualisation of the same
+                 probabilities. The bars above remain as the accessible
+                 fallback (works without JS, screen-reader friendly). -->
+            <div class="report-chart-wrap mt-3">
+          <canvas id="probabilityChart" height="220"
+                       aria-label="Interactive doughnut chart of seven-class probabilities" data-i18n-aria="chart.doughnut_aria"
+                      role="img"></canvas>
+            </div>
+          {% else %}
+            <p class="report-empty-state" data-i18n="result.no_probs">Per-class probability values were not saved for this result.</p>
+          {% endif %}
+        </div>
+
+        <div class="report-backend">
+          <span data-i18n="result.inference_backend">Inference backend</span>
+          <code>{{ record.backend }}</code>
+        </div>
+      </section>
+    </div>
+
+    {% if wrong_input and wrong_input.warning %}
+      <aside class="report-input-warning" role="status">
+        <i data-lucide="alert-triangle" aria-hidden="true"></i>
+        <div>
+          <strong data-i18n="result.input_check">Input check</strong>
+          <p data-i18n-server>{{ wrong_input.warning }}</p>
+          {% if wrong_input.suggestions %}
+            <ul>
+              {% for suggestion in wrong_input.suggestions %}<li data-i18n-server>{{ suggestion }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      </aside>
+    {% endif %}
+
+    <div class="report-evidence-grid">
+      {% if quality and quality.checks %}
+        <section class="report-card report-evidence-card" aria-labelledby="quality-title">
+          <div class="report-evidence-heading">
+            <div class="report-heading-icon"><i data-lucide="scan-line" aria-hidden="true"></i></div>
+            <div>
+              <h2 id="quality-title" data-i18n="result.quality_title">Image quality</h2>
+              <p data-i18n="result.quality_caption">Capture checks based on image heuristics</p>
+            </div>
+            {% if quality_score_percent != None %}
+              <div class="quality-gauge {% if quality.suitable %}is-pass{% else %}is-caution{% endif %}"
+                   style="--quality-score: {{ quality_score_percent|floatformat:1 }}%;"
+                   role="img"
+                    aria-label="Image quality score {{ quality_score_percent|floatformat:0 }} out of 100"
+                    data-i18n-aria="result.quality_score" data-i18n-param-score="{{ quality_score_percent|floatformat:0 }}">
+                <span><strong>{{ quality_score_percent|floatformat:0 }}</strong><small>/100</small></span>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="report-quality-status {% if quality.suitable %}is-pass{% else %}is-caution{% endif %}">
+            {% if quality.suitable %}
+              <i data-lucide="check-circle-2" aria-hidden="true"></i> <span data-i18n="result.quality_passed_status">Passed the configured image checks</span>
+            {% else %}
+              <i data-lucide="alert-circle" aria-hidden="true"></i> <span data-i18n="result.quality_attention_status">Some image checks need attention</span>
+            {% endif %}
+          </div>
+
+          <div class="quality-check-list">
+            {% for check in quality.checks %}
+              <div class="quality-check {% if not check.passed %}is-failed{% endif %}">
+                <span class="quality-check-icon">
+                  <i data-lucide="{% if check.passed %}check{% else %}x{% endif %}" aria-hidden="true"></i>
+                </span>
+                <div>
+                   <strong><span data-i18n="quality.label.{{ check.name }}">{{ check.label }}</span></strong>
+                   <p data-quality-name="{{ check.name }}" data-quality-message="{{ check.message }}">{{ check.message }}</p>
+                   {% if check.suggestion %}<small data-quality-name="{{ check.name }}" data-quality-suggestion="{{ check.suggestion }}">{{ check.suggestion }}</small>{% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <p class="report-footnote" data-i18n="result.quality_footnote">This score is a heuristic, not a medical suitability certificate.</p>
+        </section>
+      {% endif %}
+
+      {% if reliability and reliability.original %}
+        <section class="report-card report-evidence-card" aria-labelledby="reliability-title">
+          <div class="report-evidence-heading">
+            <div class="report-heading-icon"><i data-lucide="activity" aria-hidden="true"></i></div>
+            <div>
+              <h2 id="reliability-title" data-i18n="result.stability_title">Prediction stability</h2>
+              <p data-i18n="result.stability_caption">Consistency across mild image transformations</p>
+            </div>
+          </div>
+
+          {% if reliability.variants %}
+            <div class="reliability-score-row">
+              <div>
+                <strong class="reliability-score">{{ reliability_agreement_percent|floatformat:0 }}%</strong>
+                <span data-i18n="result.agreement_variants">Agreement across variants</span>
+              </div>
+              <span class="reliability-status {% if reliability.stable %}is-pass{% else %}is-caution{% endif %}">
+                {% if reliability.stable %}<span data-i18n="result.stable">Stable</span>{% else %}<span data-i18n="result.unstable">Unstable</span>{% endif %}
+              </span>
+            </div>
+            <div class="reliability-track"
+                 role="progressbar"
+                 aria-label="Agreement across transformed images"
+                 data-i18n-aria="result.agreement_aria"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow="{{ reliability_agreement_percent|floatformat:0 }}">
+              <span style="width: {{ reliability_agreement_percent|floatformat:1 }}%;"></span>
+            </div>
+            <div class="reliability-stats">
+              {% if reliability_original_confidence_percent != None %}
+                <div><strong>{{ reliability_original_confidence_percent|floatformat:1 }}%</strong><span data-i18n="result.original_confidence">Original confidence</span></div>
+              {% endif %}
+              <div><strong>{{ reliability.variants|length }}</strong><span data-i18n="result.variants_tested">Variants tested</span></div>
+              <div><strong>{{ reliability.flipped_classes|length }}</strong><span data-i18n="result.class_changes">Class changes</span></div>
+            </div>
+            {% if reliability.flipped_classes %}
+              <div class="reliability-flips">
+                <strong data-i18n="result.transforms_changed">Transforms that changed the top class</strong>
+                <ul>
+                  {% for flip in reliability.flipped_classes %}
+                    <li>{{ flip.transform }} <span aria-hidden="true">→</span> <code>{{ flip.class|upper }}</code></li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% else %}
+              <p class="reliability-consistent"><i data-lucide="check" aria-hidden="true"></i> <span data-i18n="result.consistent_note">The top-class output stayed consistent in these tests.</span></p>
+            {% endif %}
+          {% else %}
+            <p class="report-empty-state" data-i18n="result.no_variants">No transformed images were scored, so a stability estimate is unavailable.</p>
+            {% if reliability_original_confidence_percent != None %}
+              <p class="report-original-confidence"><span data-i18n="result.original_confidence">Original confidence</span>: <strong>{{ reliability_original_confidence_percent|floatformat:1 }}%</strong></p>
+            {% endif %}
+          {% endif %}
+          <p class="report-footnote" data-i18n="result.stability_footnote">Agreement describes model stability, not accuracy or medical correctness.</p>
+        </section>
+      {% endif %}
+    </div>
+
+    <aside class="report-disclaimer">
+      <span class="report-disclaimer-icon"><i data-lucide="alert-triangle" aria-hidden="true"></i></span>
+      <div>
+        <h2 data-i18n="result.important_limitations">Important limitations</h2>
+        <p data-i18n="result.limitations_p1">This experimental research prototype is not a medical diagnostic tool. The model can be wrong even when confidence and stability are high.</p>
+        <p data-i18n="result.limitations_p2">Consult a qualified dermatologist for assessment. If a lesion is changing, bleeding, growing, or painful, do not delay professional care based on this result.</p>
+      </div>
+    </aside>
+
+    <nav class="report-bottom-actions" aria-label="Next steps" data-i18n-aria="result.next_steps_aria">
+      <a href="{% url 'predictor:upload' %}" class="report-button report-button-primary">
+        <i data-lucide="refresh-cw" aria-hidden="true"></i> <span data-i18n="result.analyze_another">Analyze another image</span>
+      </a>
+      <a href="{% url 'education:detail' record.predicted_class %}" class="report-button">
+        <i data-lucide="book-open" aria-hidden="true"></i> <span data-i18n="result.disease_details">Disease details &amp; care guide</span>
+      </a>
+      <a href="{% url 'reliability:check' %}?reference_id={{ record.reference_id|urlencode }}" class="report-button">
+        <i data-lucide="activity" aria-hidden="true"></i> <span data-i18n="result.reliability_check">Reliability check</span>
+      </a>
+      <a href="{% url 'multi_image:compare' %}" class="report-button">
+        <i data-lucide="layers" aria-hidden="true"></i> <span data-i18n="result.compare_images">Compare images</span>
+      </a>
+    </nav>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer crossorigin="anonymous"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var data = {{ probability_chart_json|safe|default:'[]' }};
+    if (!window.Chart || !data.length) return;
+    var palette = {
+      'malignant':     '#dc2626',
+      'pre malignant': '#f59e0b',
+      'benign':        '#16a34a',
+      'unknown':       '#0d9488',
+    };
+    var labels = data.map(function (r) {
+      return r.code.toUpperCase() + ' — ' + window.DERMA.className(r.code, r.name);
+    });
+    var values = data.map(function (r) { return r.percent; });
+    var colors = data.map(function (r) { return palette[r.category] || palette.unknown; });
+
+    new Chart(document.getElementById('probabilityChart'), {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors,
+          borderColor: '#ffffff',
+          borderWidth: 2,
+          hoverOffset: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '55%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#0f172a', font: { size: 11 }, boxWidth: 12 },
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var v = ctx.parsed;
+                return ctx.label + ': ' + v.toFixed(2) + '%';
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+</script>
+{% endblock %}

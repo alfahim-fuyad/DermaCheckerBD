@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Multi-Image Comparison · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="layers" style="width:14px;height:14px;"></i> <span data-i18n="mi.eyebrow">Multi-Image Disagreement</span></span>
+    <h1 class="mb-2" data-i18n="mi.title">Multi-image comparison</h1>
+    <p class="text-muted" data-i18n="mi.subtitle" data-i18n-param-max-images="{{ max_images }}">Upload 2-{{ max_images }} photos of the same lesion from different angles or lighting. We'll surface disagreement.</p>
+    <hr class="my-4">
+
+    {% if error %}
+      <div class="medical-disclaimer mb-4">
+        <strong><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:-2px;"></i> <span data-i18n="common.upload_rejected">Upload rejected</span></strong>
+        <p class="mb-0" data-i18n-server>{{ error }}</p>
+      </div>
+    {% endif %}
+
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="app-card">
+          <form method="post" enctype="multipart/form-data" id="multiImageForm">
+            {% csrf_token %}
+            <label class="upload-area" id="dropZone" for="imageInput">
+              <div class="upload-icon"><i data-lucide="layers"></i></div>
+              <p class="fw-semibold mb-1" data-i18n="mi.select_multiple">Select multiple images of the same lesion</p>
+              <p class="upload-hint" data-i18n="mi.drop_hint" data-i18n-param-max-images="{{ max_images }}">JPG, PNG, WEBP · max 10 MB each · 2-{{ max_images }} images</p>
+              <input type="file" name="images" id="imageInput" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden" aria-describedby="uploadStatus" data-max-images="{{ max_images }}">
+            </label>
+            <div id="selectedFiles" class="multi-image-selected mt-3" hidden>
+              <p class="small fw-semibold mb-2" data-i18n="mi.selected_files">Selected images</p>
+              <ul id="selectedFileList" class="list-group list-group-flush multi-image-file-list mb-0"></ul>
+            </div>
+            <p id="uploadStatus" class="small mt-2 mb-0" role="status" aria-live="polite" hidden></p>
+            <button type="submit" class="btn app-btn-primary w-100 mt-3" id="compareSubmit" disabled>
+              <i data-lucide="git-compare" style="width:16px;height:16px;"></i> <span data-i18n="mi.compare">Compare predictions</span>
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="app-card">
+          <h3 class="h6" data-i18n="mi.how_computed">How disagreement is computed</h3>
+          <ul class="small text-muted mb-2">
+            <li data-i18n="mi.how_1">Each image gets its own prediction.</li>
+            <li data-i18n="mi.how_2">The modal (most-common) top class is identified.</li>
+            <li data-i18n="mi.how_3">Agreement = % of images matching the modal class.</li>
+            <li data-i18n="mi.how_4">If agreement &lt; 66%, the case is flagged as significant disagreement.</li>
+          </ul>
+          <div class="medical-disclaimer" data-i18n="mi.disclaimer">This feature does NOT auto-average predictions or claim improved accuracy. Disagreement is only a signal to seek professional review.</div>
+        </div>
+      </div>
+    </div>
+
+    {% if report and report.images %}
+      <div class="app-card mt-4">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-block {{ report.significant_disagreement|yesno:'warning,success' }}">
+              <div class="stat-value">{{ report.agreement_pct|floatformat:0 }}%</div>
+              <div class="stat-label" data-i18n="mi.agreement">Agreement</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-block">
+              <div class="stat-value">
+                <span class="badge class-code-badge {% if report.modal_class == 'bcc' or report.modal_class == 'mel' %}class-code-badge--malignant{% elif report.modal_class == 'akiec' %}class-code-badge--premalignant{% else %}class-code-badge--benign{% endif %}">{{ report.modal_class|upper }}</span>
+              </div>
+              <div class="stat-label" data-i18n="mi.modal_class">Modal class</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-block {{ report.disagreeing_images|length|yesno:'warning,success' }}">
+              <div class="stat-value">{{ report.disagreeing_images|length }}</div>
+              <div class="stat-label" data-i18n="mi.disagreeing">Disagreeing images</div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="h6 mt-4" data-i18n="mi.per_image">Per-image predictions</h3>
+        <div class="row g-3">
+          {% for img in report.images %}
+            <div class="col-md-6 col-lg-4">
+              <div class="app-card p-3">
+                {% if preview_pairs and forloop.counter0 < preview_pairs|length %}
+                  {% with idx=img.index %}
+                    {% for pair in preview_pairs %}
+                      {% if pair.0 == idx %}
+                        <img src="{{ pair.1 }}" alt="Thumbnail {{ idx|add:1 }}" class="rounded mb-2" style="width:100%; max-height:140px; object-fit:cover;">
+                      {% endif %}
+                    {% endfor %}
+                  {% endwith %}
+                {% endif %}
+                <div class="small text-muted"><span data-i18n="mi.image_num">Image #</span>{{ img.index|add:1 }}</div>
+                <div class="fw-bold">
+                  <span class="badge class-code-badge {% if img.prediction.category == 'malignant' %}class-code-badge--malignant{% elif img.prediction.category == 'pre malignant' %}class-code-badge--premalignant{% elif img.prediction.category == 'benign' %}class-code-badge--benign{% endif %}">{{ img.prediction.predicted_class|upper }}</span>
+                </div>
+                <div class="small text-muted" data-i18n="class-name.{{ img.prediction.predicted_class }}">{{ img.prediction.predicted_name }}</div>
+                <div class="small"><span data-i18n="mi.confidence">Confidence:</span> {{ img.prediction.confidence|floatformat:3 }}</div>
+                {% if img.prediction.predicted_class != report.modal_class %}
+                  <span class="badge bg-warning mt-2"><i data-lucide="alert-triangle" style="width:12px;height:12px;"></i> <span data-i18n="mi.disagrees">disagrees</span></span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="mt-4">
+          <strong data-i18n="mi.recommendation">Recommendation:</strong>
+          <p class="text-muted small mb-0">{{ report.recommendation }}</p>
+        </div>
+
+        {% if report.significant_disagreement %}
+          <div class="medical-disclaimer mt-3" data-i18n="mi.significant_disagree">
+            Significant disagreement detected. We recommend professional dermatology review and do not rely on this prototype's output.
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script src="{% static 'js/multi-image.js' %}" defer></script>
+{% endblock %}

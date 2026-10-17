@@ -1,0 +1,50 @@
+<div id="predictionOverlay" class="prediction-overlay" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+  <div class="prediction-overlay-card">
+    <div class="prediction-overlay-scan" aria-hidden="true">
+      <img class="prediction-overlay-image" id="predictionScanImage" alt="">
+      <div class="prediction-overlay-scan-line"></div>
+    </div>
+    <h2 id="overlayTitle" class="h5 mb-1" data-i18n="overlay.title">Analyzing your skin image</h2>
+    <p class="text-muted small mb-4" data-i18n="overlay.subtitle">Please keep this tab open. This usually takes a few seconds.</p>
+
+    <ol class="prediction-stages" id="predictionStages">
+      <li class="prediction-stage is-active" data-stage="1">
+        <span class="prediction-stage-num">1</span>
+        <span class="prediction-stage-label">
+          <strong data-i18n="overlay.stage1.title">Preparing model input</strong>
+          <small data-i18n="overlay.stage1.sub">Converting, resizing, normalizing pixels</small>
+        </span>
+        <span class="prediction-stage-spinner" aria-hidden="true"></span>
+      </li>
+      <li class="prediction-stage" data-stage="2">
+        <span class="prediction-stage-num">2</span>
+        <span class="prediction-stage-label">
+          <strong data-i18n="overlay.stage2.title">Running ResNet50 inference</strong>
+          <small data-i18n="overlay.stage2.sub">Forward pass through the model</small>
+        </span>
+        <span class="prediction-stage-spinner" aria-hidden="true"></span>
+      </li>
+      <li class="prediction-stage" data-stage="3">
+        <span class="prediction-stage-num">3</span>
+        <span class="prediction-stage-label">
+          <strong data-i18n="overlay.stage3.title">Calculating class probabilities</strong>
+          <small data-i18n="overlay.stage3.sub">Across 7 supported categories</small>
+        </span>
+        <span class="prediction-stage-spinner" aria-hidden="true"></span>
+      </li>
+      <li class="prediction-stage" data-stage="4">
+        <span class="prediction-stage-num">4</span>
+        <span class="prediction-stage-label">
+          <strong data-i18n="overlay.stage4.title">Preparing visual report</strong>
+          <small data-i18n="overlay.stage4.sub">Saving record, building report URL</small>
+        </span>
+        <span class="prediction-stage-spinner" aria-hidden="true"></span>
+      </li>
+    </ol>
+
+    <div class="prediction-overlay-disclaimer" role="status">
+      <i data-lucide="info" style="width:14px;height:14px;vertical-align:-2px;"></i>
+      <span data-i18n="overlay.disclaimer">The progress indicators are illustrative. Actual completion is detected only when the server responds.</span>
+    </div>
+  </div>
+</div>

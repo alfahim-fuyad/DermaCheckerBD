@@ -1,0 +1,39 @@
+# secrets
+.env
+*.env
+!/.env.example
+
+# skills directory (private to dev environment)
+skills/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# django
+db.sqlite3
+db/db.sqlite3
+db/cache/
+staticfiles/
+media/uploads/
+media/tracked/
+media/reference/
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# node
+node_modules/
+
+# build artifacts
+*.log
+*.pid
+attached_assets/resnet50_finetuned_1791994962604.keras

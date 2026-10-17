@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Lesion Record · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 42rem;">
+    <span class="app-badge mb-3"><i data-lucide="plus-circle" style="width:14px;height:14px;"></i> <span data-i18n="trc.eyebrow">New record</span></span>
+    <h1 class="mb-3" data-i18n="trc.title">Create a new lesion record</h1>
+    <hr>
+
+    <div class="app-card">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="app-form-label" for="id_label" data-i18n="trc.label">Label</label>
+          <input type="text" name="label" id="id_label" class="form-control app-form-control" maxlength="128" placeholder="e.g., Mole on left forearm" data-i18n-ph="ph.label_example">
+        </div>
+        <div class="mb-3">
+          <label class="app-form-label" for="id_body_location"><span data-i18n="trc.body_location">Body location</span> <span class="text-muted" data-i18n="common.optional">(optional)</span></label>
+          <input type="text" name="body_location" id="id_body_location" class="form-control app-form-control" maxlength="64" placeholder="e.g., Left forearm, 5cm above wrist" data-i18n-ph="ph.body_location_example">
+        </div>
+        <div class="mb-3">
+          <label class="app-form-label" for="id_notes"><span data-i18n="trc.notes">Notes</span> <span class="text-muted" data-i18n="common.optional">(optional)</span></label>
+          <textarea name="notes" id="id_notes" class="form-control app-form-control" rows="3" placeholder="Any context — size, change history, etc." data-i18n-ph="ph.notes_example"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="app-form-label" for="id_captured_at" data-i18n="trc.date_first">Date of first photo</label>
+          <input type="date" name="captured_at" id="id_captured_at" class="form-control app-form-control" value="{% now "Y-m-d" %}">
+        </div>
+        <div class="mb-3">
+          <label class="app-form-label" for="id_image"><span data-i18n="trc.first_photo">First photo</span> <span class="text-muted" data-i18n="common.optional">(optional)</span></label>
+          <input type="file" name="image" id="id_image" accept="image/jpeg,image/png,image/webp" class="form-control app-form-control">
+        </div>
+        <div class="mb-3">
+          <label class="app-form-label" for="id_note"><span data-i18n="trc.photo_note">Photo note</span> <span class="text-muted" data-i18n="common.optional">(optional)</span></label>
+          <input type="text" name="note" id="id_note" class="form-control app-form-control" maxlength="255" placeholder="e.g., Morning, indoor lighting" data-i18n-ph="ph.photo_note_example">
+        </div>
+        <div class="privacy-note mb-3">
+          <i data-lucide="lock"></i>
+          <span data-i18n="trc.private">Records are private to your account.</span>
+        </div>
+        <button type="submit" class="btn app-btn-primary">
+          <i data-lucide="check" style="width:16px;height:16px;"></i> <span data-i18n="trc.create">Create record</span>
+        </button>
+        <a href="{% url 'tracker:index' %}" class="btn app-btn-outline" data-i18n="trc.cancel">Cancel</a>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

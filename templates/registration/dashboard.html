@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 72rem;">
+    <header class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+      <div>
+        <span class="app-badge mb-2"><i data-lucide="layout-dashboard" style="width:14px;height:14px;"></i> <span data-i18n="dash.eyebrow">Dashboard</span></span>
+        <h1 class="mb-1"><span data-i18n="dash.welcome">Welcome back,</span> {{ user.username }}</h1>
+        <p class="text-muted mb-0" data-i18n="dash.subtitle">Your skin analysis workspace — every number below is real data from your account.</p>
+      </div>
+      <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary">
+        <i data-lucide="zap" style="width:16px;height:16px;"></i> <span data-i18n="dash.new_scan">Start a new scan</span>
+      </a>
+    </header>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="app-card h-100">
+          <div class="feature-icon mb-2"><i data-lucide="scan-search"></i></div>
+          <div class="display-6 fw-bold" style="color: var(--primary);">{{ stats.total_predictions }}</div>
+          <div class="text-muted small" data-i18n="dash.total_predictions">Total predictions</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="app-card h-100">
+          <div class="feature-icon mb-2"><i data-lucide="image"></i></div>
+          <div class="display-6 fw-bold" style="color: var(--secondary);">{{ stats.saved_images }}</div>
+          <div class="text-muted small" data-i18n="dash.saved_images">Saved images</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="app-card h-100">
+          <div class="feature-icon mb-2"><i data-lucide="calendar-clock"></i></div>
+          <div class="display-6 fw-bold" style="color: var(--accent);">{{ stats.tracked_lesions }}</div>
+          <div class="text-muted small" data-i18n="dash.tracked_lesions">Tracked lesions</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="app-card h-100">
+          <div class="feature-icon mb-2"><i data-lucide="file-text"></i></div>
+          <div class="display-6 fw-bold" style="color: var(--warning);">{{ stats.reports_available }}</div>
+          <div class="text-muted small" data-i18n="dash.reports_available">Reports available</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="row g-4 mb-4">
+      <div class="col-lg-7">
+        <div class="app-card h-100 dashboard-chart-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0" data-i18n="dash.activity_7day">7-day prediction activity</h2>
+            <span class="badge bg-light text-muted" data-i18n="dash.last_7_days">Last 7 days</span>
+          </div>
+          {% if stats.total_predictions %}
+            <div class="dashboard-chart-frame">
+              <canvas id="activityChart" aria-label="7-day prediction activity bar chart" data-i18n-aria="chart.activity_aria" role="img"></canvas>
+            </div>
+            <p id="activityChartUnavailable" class="small text-muted mt-2 mb-0" hidden>Charts could not be loaded. Your prediction history is still available.</p>
+          {% else %}
+            <div class="empty-state py-3">
+              <p class="fw-semibold mb-1" data-i18n="dash.no_predictions">No predictions yet</p>
+              <p class="small mb-0" data-i18n="dash.no_predictions_sub">Your activity chart will appear after your first scan.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="app-card h-100 dashboard-chart-card">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0" data-i18n="dash.by_class">Predictions by class</h2>
+            {% if class_distribution %}
+              <span class="badge bg-light text-muted">{{ class_distribution|length }} <span data-i18n="dash.classes">class(es)</span></span>
+            {% endif %}
+          </div>
+          {% if stats.total_predictions %}
+            <div class="dashboard-chart-frame">
+              <canvas id="classChart" aria-label="Predictions by HAM10000 class pie chart" data-i18n-aria="dash.by_class" role="img"></canvas>
+            </div>
+            <p id="classChartUnavailable" class="small text-muted mt-2 mb-0" hidden>Charts could not be loaded. Your prediction history is still available.</p>
+          {% else %}
+            <div class="empty-state">
+              <div class="empty-icon"><i data-lucide="inbox"></i></div>
+              <p class="fw-semibold" data-i18n="dash.no_predictions">No predictions yet</p>
+              <p class="small" data-i18n="dash.no_predictions_sub">Your class distribution chart will appear here after your first scan.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div class="app-card mb-4">
+      <h2 class="h5 mb-3"><i data-lucide="zap" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="dash.quick_actions">Quick actions</span></h2>
+      <div class="row g-2">
+        {% for action in quick_actions %}
+          <div class="col-6 col-md-4 col-lg-3">
+            <a href="{% url action.url_name %}"
+               class="d-flex align-items-center gap-2 p-3 border rounded-3 text-decoration-none h-100 {% if action.kind == 'primary' %}app-btn-primary{% else %}app-btn-outline{% endif %}">
+              <i data-lucide="{{ action.icon }}" style="width:18px;height:18px;"></i>
+              <span class="fw-semibold small" data-i18n="qa.{{ action.label|slugify }}">{{ action.label }}</span>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="app-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0"><i data-lucide="activity" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="dash.recent_activity">Recent activity</span></h2>
+        <a href="{% url 'predictor:history' %}" class="btn app-btn-outline btn-sm">
+          <i data-lucide="history" style="width:14px;height:14px;"></i> <span data-i18n="history.title">Prediction history</span>
+        </a>
+      </div>
+      {% if activity_feed %}
+        <div class="list-group">
+          {% for item in activity_feed %}
+            <a href="{% url item.url_name item.url_arg %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-3">
+                <span class="feature-icon" style="width:36px;height:36px;">
+                  <i data-lucide="{{ item.icon }}" style="width:16px;height:16px;"></i>
+                </span>
+                <div>
+                  <div class="fw-semibold">
+                    {% if item.type == "prediction" %}
+                      {{ item.image_name }}
+                      <div class="small fw-normal text-muted"><span data-i18n-class="{{ item.code }}">{{ item.code|upper }} — {{ item.label }}</span></div>
+                    {% else %}{{ item.label }}{% endif %}
+                  </div>
+                  <div class="small text-muted" data-i18n="dash.activity.{{ item.type }}">{{ item.type|title }}</div>
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge bg-light text-muted">{{ item.when|timesince }} ago</span>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon"><i data-lucide="inbox"></i></div>
+          <p class="fw-semibold" data-i18n="dash.no_activity">No activity yet</p>
+          <p class="small" data-i18n="dash.no_activity_sub">Predictions and tracked lesions will appear here.</p>
+          <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary btn-sm mt-2">
+            <i data-lucide="zap" style="width:14px;height:14px;"></i> <span data-i18n="dash.first_scan">Start your first scan</span>
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer crossorigin="anonymous"></script>
+{{ daily_counts|json_script:"dashboard-daily-counts" }}
+{{ class_distribution|json_script:"dashboard-class-distribution" }}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var daily = JSON.parse(document.getElementById('dashboard-daily-counts').textContent);
+    // Chart.js needs JS values, not Python dicts. Convert dates to short labels.
+    var labels = daily.map(function (d) {
+      var parts = d.date.split('-').map(Number);
+      var dt = new Date(parts[0], parts[1] - 1, parts[2]);
+      return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    });
+    var counts = daily.map(function (d) { return d.count; });
+
+    var activityCanvas = document.getElementById('activityChart');
+    if (activityCanvas && !window.Chart) {
+      document.getElementById('activityChartUnavailable').hidden = false;
+    } else if (window.Chart && activityCanvas) {
+      new Chart(activityCanvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: window.DERMA.t('chart.predictions_label', 'Predictions'),
+            data: counts,
+            backgroundColor: 'rgba(13, 148, 136, 0.85)',
+            borderColor: 'rgba(13, 148, 136, 1)',
+            borderWidth: 1,
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0, color: '#64748b' }, grid: { color: '#e2e8f0' } },
+            x: { ticks: { color: '#64748b' }, grid: { display: false } },
+          },
+        },
+      });
+    }
+
+    var cd = JSON.parse(document.getElementById('dashboard-class-distribution').textContent);
+    var classCanvas = document.getElementById('classChart');
+    if (classCanvas && !window.Chart) {
+      document.getElementById('classChartUnavailable').hidden = false;
+    } else if (window.Chart && classCanvas && cd.length) {
+      var labels = cd.map(function (c) { return c.code.toUpperCase() + ' — ' + window.DERMA.className(c.code, c.name); });
+      var data = cd.map(function (c) { return c.count; });
+      var palette = {
+        'akiec': '#0f766e',
+        'bcc': '#e11d48',
+        'bkl': '#f59e0b',
+        'df': '#7c3aed',
+        'mel': '#dc2626',
+        'nv': '#2563eb',
+        'vasc': '#0891b2',
+      };
+      var colors = cd.map(function (c) { return palette[c.code] || '#64748b'; });
+      new Chart(classCanvas, {
+        type: 'pie',
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#0f172a', font: { size: 11 } } },
+          },
+        },
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+# Render Blueprint spec for DermaCheckerBD.
+# Docs: https://render.com/docs/blueprint-spec
+# How to use: in the Render dashboard, choose New > Blueprint, and select this file.
+
+databases:
+  - name: dermacheckerbd-db
+    plan: free            # bump up on production traffic
+    databaseName: dermacheckerbd
+    ipAllowList: []       # only the Render service can reach it via private link
+
+services:
+  - type: web
+    name: dermacheckerbd-web
+    env: python
+    plan: free
+    branch: main
+    healthCheckPath: /healthz/
+    buildCommand: |
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput
+    # Migrations are NOT run inside the web startCommand. README documents
+    # why: concurrent workers racing to migrate can corrupt schema state.
+    # Migrations run via the dedicated `release` block below, which Render
+    # runs once per deploy *before* the web service starts.
+    startCommand: gunicorn dermacheckerbd.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    # Render `release` command runs once per deploy, before any web worker
+    # starts. This is the recommended place for migrate + superuser ensure.
+    # See https://render.com/docs/blueprint-spec#release-command
+    releaseCommand: python manage.py migrate --noinput && python manage.py ensure_render_superuser
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        sync: false              # set manually in the dashboard
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false              # set manually; used for one-time superuser creation
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false              # set manually; keep this secret
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dermacheckerbd-db
+          property: connectionString
+      - key: GEMINI_API_KEY
+        sync: false              # set manually if you want the chatbot live
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      - key: ML_MODEL_BACKEND
+        value: keras
+      - key: MODEL_GDRIVE_URL
+        value: "https://drive.google.com/file/d/1hPR7GhSKccBpKF2n8Ve2-k5i8TnnIuKh/view?usp=drivesdk"
+      - key: ML_MODEL_CLASSES
+        value: akiec,bcc,bkl,df,mel,nv,vasc
+      - key: SIMILAR_CASES_ENABLED
+        value: "False"
+    autoDeploy: true
+
+  - type: cron
+    name: dermacheckerbd-migrate
+    env: python
+    schedule: "0 3 * * *"        # off-peak; one-off is even better, run manually
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py migrate --noinput
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dermacheckerbd-db
+          property: connectionString
+
+  - type: cron
+    name: dermacheckerbd-prune
+    env: python
+    schedule: "30 4 * * *"        # 04:30 UTC daily, after migrate cron
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py prune_old_predictions
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dermacheckerbd-db
+          property: connectionString
+      - key: IMAGE_RETENTION_DAYS
+        value: "0"                # set >0 to actually prune; 0 keeps forever

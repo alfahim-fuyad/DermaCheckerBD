@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static questionnaire_extras %}
+
+{% block title %}Skin Warning Signs Checker · DermaCheckerBD{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container-xl" style="max-width: 56rem;">
+    <span class="app-badge mb-3"><i data-lucide="alert-triangle" style="width:14px;height:14px;"></i> <span data-i18n="q.eyebrow">Self-assessment</span></span>
+    <h1 class="mb-2" data-i18n="q.title">Skin warning signs checker</h1>
+    <p class="text-muted mb-4" data-i18n="q.subtitle">
+      Answer honestly about the lesion you are concerned about. The
+      questionnaire uses the dermatology-standard ABCDE rule plus ugly
+      duckling sign and red-flag symptoms. It is an educational aid — not
+      a diagnosis.
+    </p>
+
+    <div class="medical-disclaimer mb-4" data-i18n="q.disclaimer">
+      <strong>Important:</strong> this checker cannot rule out skin cancer.
+      Answering "no" to every question does <em>not</em> guarantee a lesion
+      is benign. If you are worried — for any reason — consult a
+      dermatologist.
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="app-card">
+        <h2 class="h5 mb-3" data-i18n="q.abcde_rule">ABCDE rule</h2>
+        {% for q in questions %}
+          <div class="qcheck-item border-bottom pb-3 mb-3">
+            <div class="flex-grow-1">
+              <div class="qcheck-label">
+                <span class="badge bg-secondary me-1" data-i18n="q.label.{{ q.id }}">{{ q.label }}</span>
+                <span data-i18n="q.question.{{ q.id }}">{{ q.text }}</span>
+              </div>
+              {% if q.hint %}<div class="qcheck-sug" data-i18n="q.hint.{{ q.id }}">{{ q.hint }}</div>{% endif %}
+              {% if q.red_flag %}
+                <span class="badge bg-danger mt-1"><i data-lucide="alert-octagon" style="width:11px;height:11px;"></i> <span data-i18n="q.red_flag">Red flag</span></span>
+              {% endif %}
+            </div>
+            <div class="btn-group" role="group" aria-label="{{ q.label }}" data-i18n-aria="q.label.{{ q.id }}">
+              <input type="radio" class="btn-check" name="{{ q.id }}" id="{{ q.id }}_yes" value="yes" autocomplete="off" {% if answers|dict_get:q.id == 'yes' %}checked{% endif %}>
+              <label class="btn btn-outline-danger btn-sm" for="{{ q.id }}_yes" data-i18n="q.yes">Yes</label>
+              <input type="radio" class="btn-check" name="{{ q.id }}" id="{{ q.id }}_no" value="no" autocomplete="off" {% if answers|dict_get:q.id == 'no' %}checked{% endif %}>
+              <label class="btn btn-outline-success btn-sm" for="{{ q.id }}_no" data-i18n="q.no">No</label>
+              <input type="radio" class="btn-check" name="{{ q.id }}" id="{{ q.id }}_unsure" value="unsure" autocomplete="off" {% if answers|dict_get:q.id == 'unsure' %}checked{% endif %}>
+              <label class="btn btn-outline-secondary btn-sm" for="{{ q.id }}_unsure" data-i18n="q.unsure">Unsure</label>
+            </div>
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn app-btn-primary w-100 mt-2">
+          <i data-lucide="activity" style="width:16px;height:16px;"></i> <span data-i18n="q.evaluate">Evaluate my answers</span>
+        </button>
+      </div>
+    </form>
+
+    {% if result %}
+      <div class="app-card mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h2 class="h5 mb-0"><i data-lucide="clipboard-check" style="width:18px;height:18px;"></i> <span data-i18n="q.result">Result</span></h2>
+          <span class="badge rounded-pill
+                {% if result.concern_level == 'high' %}bg-danger
+                {% elif result.concern_level == 'moderate' %}bg-warning text-dark
+                {% else %}bg-success{% endif %} fs-6">
+            <span data-i18n="q.concern">Concern:</span> <span data-i18n="risk.{{ result.concern_level }}">{{ result.concern_level|title }}</span>
+          </span>
+        </div>
+        <p class="small text-muted">
+          <span data-i18n="q.scored">Scored</span> {{ result.total_score }} / {{ result.max_score }} <span data-i18n="q.on_abcde">on ABCDE + ugly duckling questions</span>
+          {% if result.red_flags_triggered %}
+            <span class="text-danger">· {{ result.red_flags_triggered|length }} <span data-i18n="q.red_flag_triggered">red flag(s) triggered</span></span>
+          {% endif %}
+        </p>
+
+        <h3 class="h6 mt-3" data-i18n="q.recommendations">Recommendations</h3>
+        <ul>
+          {% for rec in result.recommendations %}
+            <li>{{ rec }}</li>
+          {% endfor %}
+        </ul>
+
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary btn-sm">
+            <i data-lucide="scan-search" style="width:14px;height:14px;"></i> <span data-i18n="q.analyze_image">Analyze an image</span>
+          </a>
+          <a href="{% url 'education:index' %}" class="btn app-btn-outline btn-sm">
+            <i data-lucide="book-open" style="width:14px;height:14px;"></i> <span data-i18n="q.read_info">Read condition information</span>
+          </a>
+          <button type="button" class="btn app-btn-outline btn-sm" onclick="window.print()">
+            <i data-lucide="printer" style="width:14px;height:14px;"></i> <span data-i18n="q.print_result">Print result</span>
+          </button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
