@@ -339,6 +339,9 @@ HAM10000_CLASS_CATEGORY = {
 # Gemini chatbot
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+# Tight timeout (8s) so a slow Gemini response triggers the cascade to
+# Groq quickly instead of making the user wait 30 seconds.
+GEMINI_TIMEOUT = float(os.environ.get("GEMINI_TIMEOUT", "8"))
 CHATBOT_RATE_LIMIT = os.environ.get("CHATBOT_RATE_LIMIT", "10/m")  # 10 msgs/min/user
 CHATBOT_SESSION_TTL = int(os.environ.get("CHATBOT_SESSION_TTL", "1800"))  # 30 min
 
@@ -354,15 +357,26 @@ CHATBOT_PROVIDER_ORDER = [
     ).split(",") if slug.strip()
 ] or ["gemini", "groq", "openrouter"]
 # Cooldown TTL applied to a provider after a retryable failure.
+# Kept short (30s) so a transient blip doesn't block a provider for a
+# full minute — Render free-tier users get fast recovery.
 CHATBOT_PROVIDER_COOLDOWN_SECONDS = float(
-    os.environ.get("CHATBOT_PROVIDER_COOLDOWN_SECONDS", "60")
+    os.environ.get("CHATBOT_PROVIDER_COOLDOWN_SECONDS", "30")
+)
+# Hard ceiling on the TOTAL cascade time across all providers. If the
+# cascade exceeds this many seconds (counting every provider attempt),
+# it stops and returns the canned reply. Keeps the chatbot responsive
+# even when every provider is slow. Set to 0 to disable the deadline.
+CHATBOT_CASCADE_DEADLINE_SECONDS = float(
+    os.environ.get("CHATBOT_CASCADE_DEADLINE_SECONDS", "15")
 )
 
 # Groq (secondary) — OpenAI-compatible Chat Completions API.
 # Get a key from https://console.groq.com/keys
+# Timeouts are intentionally tight (8s) so a slow provider never makes
+# the chatbot feel unresponsive; the cascade falls through quickly.
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
-GROQ_TIMEOUT = float(os.environ.get("GROQ_TIMEOUT", "30"))
+GROQ_TIMEOUT = float(os.environ.get("GROQ_TIMEOUT", "8"))
 
 # OpenRouter (tertiary) — OpenAI-compatible router over many models.
 # Get a key from https://openrouter.ai/keys
@@ -370,7 +384,7 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_MODEL = os.environ.get(
     "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"
 ).strip()
-OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "45"))
+OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "12"))
 # Optional identification headers recommended by OpenRouter.
 # These are NOT secrets — they help OpenRouter rate-limit your account
 # correctly and label your requests in their dashboard.
@@ -379,6 +393,16 @@ OPENROUTER_SITE_NAME = os.environ.get("OPENROUTER_SITE_NAME", "DermaCheckerBD").
 
 # Cap on how many turns we persist server-side per user conversation.
 CHATBOT_HISTORY_KEEP = int(os.environ.get("CHATBOT_HISTORY_KEEP", "40"))
+
+# When True, the chatbot view defers ChatUsageLog writes and
+# ChatConversation persistence to run AFTER the HTTP response is sent
+# (via transaction.on_commit). This keeps the chatbot reply path fast
+# even when the database is under load. Default: True on Render / any
+# production deployment; set to False for local dev if you want to
+# inspect the writes synchronously.
+CHATBOT_DEFER_PERSISTENCE = os.environ.get(
+    "CHATBOT_DEFER_PERSISTENCE", "True"
+).lower() in ("1", "true", "yes")
 
 # Image quality thresholds (Smart Photo Guide)
 IMG_MIN_DIMENSION = int(os.environ.get("IMG_MIN_DIMENSION", "200"))

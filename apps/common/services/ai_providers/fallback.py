@@ -12,21 +12,29 @@ calls. It:
     4. Calls the first available provider. On a retryable error it
        records a cooldown, logs the failure via ``ChatUsageLog``, and
        tries the next provider.
-    5. On exhaustion of every provider, returns the existing canned
+    5. Enforces a hard ``CHATBOT_CASCADE_DEADLINE_SECONDS`` total budget
+       across every provider attempt — if the cascade runs long, it
+       stops and returns the canned reply so the chatbot never feels
+       unresponsive.
+    6. On exhaustion of every provider, returns the existing canned
        failure response so the UI never breaks.
 
 The service also persists conversation turns to ``ChatConversation`` /
 ``ChatMessage`` for authenticated users, and writes a ``ChatUsageLog``
-row for every provider attempt (success or failure).
+row for every provider attempt (success or failure). Both writes are
+deferred via ``transaction.on_commit`` (when ``CHATBOT_DEFER_PERSISTENCE``
+is True, the default) so they never block the chatbot reply.
 """
 from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 from django.conf import settings
+from django.db import transaction
 
 from .base import (
     BaseAIProvider,
@@ -34,6 +42,7 @@ from .base import (
     ProviderError,
     ProviderUnavailableError,
     ProviderResult,
+    ProviderTimeoutError,
 )
 from .cooldown import CooldownTracker, CooldownEntry
 from .gemini_provider import GeminiProvider
@@ -110,10 +119,25 @@ class FallbackChatService:
         if not order:
             order = ["gemini", "groq", "openrouter"]
 
+        # Hard total budget across every provider attempt. Keeps the
+        # chatbot responsive even when every provider is slow.
+        deadline_seconds = float(getattr(settings, "CHATBOT_CASCADE_DEADLINE_SECONDS", 15) or 0)
+        deadline_at = (time.monotonic() + deadline_seconds) if deadline_seconds > 0 else None
+
         attempts: List[Dict[str, Any]] = []
         cooldowns_set: List[CooldownEntry] = []
 
         for slug in order:
+            # Stop early if we've already burned the whole cascade budget.
+            if deadline_at is not None and time.monotonic() >= deadline_at:
+                logger.info(
+                    "Cascade deadline (%.1fs) reached before trying %s; "
+                    "returning canned reply.",
+                    deadline_seconds,
+                    slug,
+                )
+                break
+
             provider_cls = PROVIDER_REGISTRY.get(slug)
             if provider_cls is None:
                 logger.warning("Unknown provider slug in CHATBOT_PROVIDER_ORDER: %s", slug)
@@ -429,24 +453,37 @@ Signed-in user access scope:
     ) -> None:
         """Best-effort write to ``ChatUsageLog``.
 
-        Wrapped in try/except so a logging failure can never break the
-        chat reply path.
+        When ``settings.CHATBOT_DEFER_PERSISTENCE`` is True (default), the
+        write is deferred via ``transaction.on_commit`` so it runs AFTER
+        the HTTP response is sent to the user — the chatbot reply path
+        never blocks on the database.
         """
-        try:
-            from apps.chatbot.models import ChatUsageLog
-            ChatUsageLog.objects.create(
-                user=user if (user is not None and getattr(user, "is_authenticated", False)) else None,
-                provider=provider,
-                model=model,
-                success=success,
-                error_code=error_code or "",
-                error_message=(error_message or "")[:500],
-                latency_ms=latency_ms,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-            )
-        except Exception:  # pragma: no cover - logging never breaks chat
-            logger.warning("Could not write ChatUsageLog row", exc_info=True)
+        def _write():
+            try:
+                from apps.chatbot.models import ChatUsageLog
+                ChatUsageLog.objects.create(
+                    user=user if (user is not None and getattr(user, "is_authenticated", False)) else None,
+                    provider=provider,
+                    model=model,
+                    success=success,
+                    error_code=error_code or "",
+                    error_message=(error_message or "")[:500],
+                    latency_ms=latency_ms,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                )
+            except Exception:  # pragma: no cover - logging never breaks chat
+                logger.warning("Could not write ChatUsageLog row", exc_info=True)
+
+        if getattr(settings, "CHATBOT_DEFER_PERSISTENCE", True):
+            try:
+                transaction.on_commit(_write)
+            except Exception:
+                # on_commit only works inside a transaction; outside of
+                # one (e.g. management command) just write synchronously.
+                _write()
+        else:
+            _write()
 
     @staticmethod
     def _persist_turn(
@@ -459,30 +496,47 @@ Signed-in user access scope:
         model: str,
         is_authenticated: bool,
     ) -> None:
-        """Append the user turn + assistant turn to the user's conversation."""
+        """Append the user turn + assistant turn to the user's conversation.
+
+        Deferred via ``transaction.on_commit`` when
+        ``settings.CHATBOT_DEFER_PERSISTENCE`` is True (default) so the
+        chatbot reply path never blocks on the database.
+        """
         if not is_authenticated or user is None:
             return
-        try:
-            from apps.chatbot.models import ChatConversation, ChatMessage as DBChatMessage
-            conversation, _ = ChatConversation.objects.get_or_create(user=user)
-            DBChatMessage.objects.bulk_create([
-                DBChatMessage(
-                    conversation=conversation,
-                    role="user",
-                    content=user_message[:600],
-                    provider="",
-                    model="",
-                ),
-                DBChatMessage(
-                    conversation=conversation,
-                    role="model",
-                    content=reply[:2000],
-                    provider=provider,
-                    model=model,
-                ),
-            ])
-            # Bound conversation size so it never grows unbounded.
-            DBChatMessage.trim_to_last(conversation, keep=40)
-            conversation.save(update_fields=["updated_at"])
-        except Exception:  # pragma: no cover - persistence never breaks chat
-            logger.warning("Could not persist chat turn", exc_info=True)
+
+        keep = int(getattr(settings, "CHATBOT_HISTORY_KEEP", 40))
+
+        def _write():
+            try:
+                from apps.chatbot.models import ChatConversation, ChatMessage as DBChatMessage
+                conversation, _ = ChatConversation.objects.get_or_create(user=user)
+                DBChatMessage.objects.bulk_create([
+                    DBChatMessage(
+                        conversation=conversation,
+                        role="user",
+                        content=user_message[:600],
+                        provider="",
+                        model="",
+                    ),
+                    DBChatMessage(
+                        conversation=conversation,
+                        role="model",
+                        content=reply[:2000],
+                        provider=provider,
+                        model=model,
+                    ),
+                ])
+                # Bound conversation size so it never grows unbounded.
+                DBChatMessage.trim_to_last(conversation, keep=keep)
+                conversation.save(update_fields=["updated_at"])
+            except Exception:  # pragma: no cover - persistence never breaks chat
+                logger.warning("Could not persist chat turn", exc_info=True)
+
+        if getattr(settings, "CHATBOT_DEFER_PERSISTENCE", True):
+            try:
+                transaction.on_commit(_write)
+            except Exception:
+                _write()
+        else:
+            _write()

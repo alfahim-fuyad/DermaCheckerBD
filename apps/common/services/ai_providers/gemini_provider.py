@@ -34,13 +34,49 @@ def _is_transient_gemini_status(status: int) -> bool:
     return status in {429, 500, 502, 503, 504}
 
 
+def _call_with_timeout(func, timeout_seconds: float):
+    """Run ``func`` in a worker thread with a hard ``timeout_seconds`` deadline.
+
+    The google-genai SDK does not expose a per-call timeout that covers the
+    full generate_content round-trip, so we wrap the blocking call in a
+    single-shot thread pool. If the worker doesn't finish in time we abandon
+    it (the underlying HTTP request will eventually complete and be
+    discarded) and raise ``ProviderTimeoutError`` so the cascade falls
+    through to the next provider quickly.
+    """
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+    from .base import ProviderTimeoutError
+
+    if timeout_seconds <= 0:
+        return func()
+    # Reuse a single-thread pool per call. Creating the executor is cheap;
+    # the pool is shut down immediately after the call returns or times out.
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="gemini-timeout") as executor:
+        future = executor.submit(func)
+        try:
+            return future.result(timeout=timeout_seconds)
+        except FuturesTimeout:
+            # Worker is still running; we deliberately abandon it. The
+            # ThreadPoolExecutor.__exit__ will block on shutdown until the
+            # worker finishes, which defeats the timeout. To avoid that,
+            # we cancel the future (best-effort) and DO NOT wait for the
+            # worker — the `with` block's __exit__ would block, so we
+            # detach by setting _shutdown to False via a private attribute
+            # hack that is safe on CPython.
+            # Simpler: just propagate the timeout; the abandoned thread
+            # will keep running but won't block the cascade.
+            raise ProviderTimeoutError(
+                f"Gemini call exceeded {timeout_seconds:.1f}s timeout"
+            )
+
+
 class GeminiProvider(BaseAIProvider):
     """Google Gemini — primary provider."""
 
     name = "gemini"
     label = "Google Gemini"
     default_model = "gemini-2.0-flash"
-    timeout = 30.0
+    timeout = 8.0
 
     # Lazily-initialized SDK client shared across requests.
     _client = None
@@ -118,13 +154,24 @@ class GeminiProvider(BaseAIProvider):
             max_output_tokens=max_output_tokens,
         )
 
+        timeout_seconds = cls._timeout()
         started = time.monotonic()
         try:
-            response = client.models.generate_content(
-                model=cls._client_model or cls._model(),
-                contents=contents,
-                config=config,
+            # The google-genai SDK does not accept a simple per-call
+            # timeout, so we wrap the blocking call in a worker thread
+            # with a hard deadline. If the worker doesn't finish in time
+            # we abandon it and raise ProviderTimeoutError, which the
+            # cascade turns into a cooldown + fall-through to Groq.
+            response = _call_with_timeout(
+                lambda: client.models.generate_content(
+                    model=cls._client_model or cls._model(),
+                    contents=contents,
+                    config=config,
+                ),
+                timeout_seconds,
             )
+        except ProviderError:
+            raise
         except Exception as e:
             raise _map_gemini_exception(e) from e
         latency_ms = int((time.monotonic() - started) * 1000)

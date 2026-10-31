@@ -484,8 +484,94 @@ in memory or CPU requirements:
   indexed `(user, -created_at)` and `(session_key, -created_at)` indexes.
 - **No new heavy dependencies.** `requirements.txt` is unchanged; the FAQ
   module uses only the Python standard library + Django.
-- **Single worker, no extra processes.** `Procfile` is unchanged:
-  `gunicorn dermacheckerbd.wsgi:application --workers 1 --timeout 120`.
+- **Single worker, multi-threaded, periodic recycle.** The Procfile is:
+  `gunicorn ... --workers 1 --threads 4 --timeout 60 --graceful-timeout 10
+  --max-requests 80 --max-requests-jitter 40 --worker-tmp-dir /dev/shm`.
+  `--threads 4` lets one worker handle 4 concurrent requests without
+  forking; `--max-requests 80` recycles the worker to release leaked RAM
+  (critical on Render's 512MB tier); `--timeout 60` kills any request
+  that hangs for more than a minute.
+
+---
+
+## Render free-tier: keeping the chatbot fast + within 512 MB RAM
+
+Render's free tier puts the web service to sleep after **15 minutes of
+inactivity** and limits RAM to **512 MB**. Both of these can make the
+chatbot feel slow or crash with "Memory quota exceeded". Here is how to
+fix each.
+
+### 1. Keep the process warm (no cold starts)
+
+After 15 minutes with zero requests, Render freezes the process. The
+first request after that takes 30+ seconds to wake up — the chatbot
+appears broken. Two options, pick one:
+
+**Option A — External uptime monitor (recommended, simplest):**
+
+Sign up at [UptimeRobot](https://uptimerobot.com/) or
+[cron-job.org](https://cron-job.org/) (both free) and create a job that
+pings `https://your-app.onrender.com/healthz/` every 10 minutes. Done.
+
+**Option B — Render Background Worker:**
+
+Add a Background Worker in the same Render service with start command:
+
+```
+python manage.py keep_chatbot_warm --url https://your-app.onrender.com/healthz/ --interval 600
+```
+
+### 2. Stay under 512 MB RAM
+
+The biggest RAM consumer in this project is **TensorFlow** (loaded by the
+ResNet50 predictor backend). On the free tier you have three choices:
+
+| Backend | RAM use | When to use |
+| --- | --- | --- |
+| `ML_MODEL_BACKEND=mock` | ~180 MB | Demos / chatbot-only deployments |
+| `ML_MODEL_BACKEND=api` | ~200 MB | Production — run TensorFlow in a separate FastAPI service |
+| `ML_MODEL_BACKEND=keras` | ~700 MB+ | Local dev only — **will crash on Render free tier** |
+
+**For the chatbot to work reliably on Render free tier:**
+
+1. Set `ML_MODEL_BACKEND=api` and run the ResNet50 model in a separate
+   FastAPI service (the repo ships with `scripts/mock_fastapi.py` as a
+   starting point). Django forwards prediction requests to the FastAPI
+   service via HTTP — TensorFlow stays out of the Django process.
+2. Or set `ML_MODEL_BACKEND=mock` if you only need the chatbot and don't
+   care about real predictions.
+3. Set these env vars in the Render dashboard (they are NOT Django
+   settings — they tune the C runtime and TensorFlow itself):
+
+   ```
+   MALLOC_TRIM_THRESHOLD_=65536      # reduces glibc malloc fragmentation
+   TF_CPP_MIN_LOG_LEVEL=3            # silence TensorFlow C++ logging
+   WEB_CONCURRENCY=1                 # single gunicorn worker
+   ```
+
+### 3. Chatbot response time budget
+
+The multi-provider cascade is tuned for responsiveness, not for waiting
+on a slow provider:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `GEMINI_TIMEOUT` | 8 s | Per-call HTTP timeout for Gemini |
+| `GROQ_TIMEOUT` | 8 s | Per-call HTTP timeout for Groq |
+| `OPENROUTER_TIMEOUT` | 12 s | Per-call HTTP timeout for OpenRouter |
+| `CHATBOT_CASCADE_DEADLINE_SECONDS` | 15 s | **Total** budget across all providers |
+| `CHATBOT_PROVIDER_COOLDOWN_SECONDS` | 30 s | How long a failed provider is skipped |
+| `CHATBOT_DEFER_PERSISTENCE` | True | Usage-log + conversation writes are deferred |
+
+Worst case: every provider times out → user waits ~15 s (the cascade
+deadline), then gets a localized canned reply. Best case: Gemini
+answers in ~2 s. Either way the chatbot feels responsive.
+
+### 4. Connection pooling (built in)
+
+Groq and OpenRouter share a module-level `requests.Session`, so the
+TCP+TLS handshake happens once per process. After the first chatbot
+message, subsequent messages save ~200-500 ms of handshake latency.
 
 ---
 

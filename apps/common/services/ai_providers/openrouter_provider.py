@@ -4,6 +4,10 @@ OpenRouter is an OpenAI-compatible router that fronts many underlying
 models. We use the ``requests`` library directly so no new heavyweight
 dependency is added.
 
+A module-level ``requests.Session`` reuses TCP/TLS connections across
+chatbot calls (same trick as the Groq provider) — saves ~200-500ms of
+handshake latency per request after the first.
+
 Docs: https://openrouter.ai/docs/api-reference/overview
 """
 from __future__ import annotations
@@ -30,6 +34,22 @@ logger = logging.getLogger(__name__)
 
 
 OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+# Module-level shared session for HTTP keep-alive.
+_openrouter_session: Optional[requests.Session] = None
+
+
+def _get_session() -> requests.Session:
+    """Return a shared ``requests.Session`` with HTTP keep-alive enabled."""
+    global _openrouter_session
+    if _openrouter_session is None:
+        _openrouter_session = requests.Session()
+        _openrouter_session.headers.update({
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        })
+    return _openrouter_session
 
 
 class OpenRouterProvider(BaseAIProvider):
@@ -80,7 +100,6 @@ class OpenRouterProvider(BaseAIProvider):
         }
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
         }
         # OpenRouter recommends these optional identification headers; they
         # are not secrets and help with rate-limit accounting.
@@ -91,9 +110,10 @@ class OpenRouterProvider(BaseAIProvider):
         if site_name:
             headers["X-Title"] = site_name
 
+        session = _get_session()
         started = time.monotonic()
         try:
-            response = requests.post(
+            response = session.post(
                 OPENROUTER_CHAT_URL,
                 json=payload,
                 headers=headers,

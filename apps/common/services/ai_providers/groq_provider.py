@@ -4,6 +4,11 @@ Groq exposes an OpenAI-compatible Chat Completions API. We use the
 ``requests`` library (already a project dependency) instead of pulling
 in the ``openai`` SDK, so the cascade has zero new heavyweight deps.
 
+A module-level ``requests.Session`` reuses TCP/TLS connections across
+chatbot calls. This cuts ~200-500ms of handshake latency off every
+request after the first, which is the difference between a snappy
+chatbot and one that feels sluggish on Render's free tier.
+
 Docs: https://console.groq.com/docs/api-reference#chat
 """
 from __future__ import annotations
@@ -29,6 +34,30 @@ logger = logging.getLogger(__name__)
 
 
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+
+# Module-level shared session for HTTP keep-alive. Created lazily so the
+# process doesn't pay the requests setup cost until the first Groq call.
+_groq_session: Optional[requests.Session] = None
+
+
+def _get_session() -> requests.Session:
+    """Return a shared ``requests.Session`` with HTTP keep-alive enabled.
+
+    Reusing the session means the TCP+TLS handshake to api.groq.com is
+    done once per process instead of once per chatbot message. On Render
+    free-tier this saves ~200-500ms per request after the first.
+    """
+    global _groq_session
+    if _groq_session is None:
+        _groq_session = requests.Session()
+        # Default headers; Authorization is added per-request from the
+        # live API key so a key rotation doesn't require a process restart.
+        _groq_session.headers.update({
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        })
+    return _groq_session
 
 
 class GroqProvider(BaseAIProvider):
@@ -80,12 +109,12 @@ class GroqProvider(BaseAIProvider):
 
         headers = {
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
         }
 
+        session = _get_session()
         started = time.monotonic()
         try:
-            response = requests.post(
+            response = session.post(
                 GROQ_CHAT_URL,
                 json=payload,
                 headers=headers,
