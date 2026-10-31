@@ -38,8 +38,8 @@
                 <span class="education-class-category" data-i18n-category="{{ c.category }}">{% if c.category == 'pre malignant' %}প্রি-ম্যালিগন্যান্ট{% elif c.category == 'malignant' %}ম্যালিগন্যান্ট{% else %}বেনাইন{% endif %}</span>
               </div>
               <h3 class="feature-title" data-i18n="class-name.{{ c.code }}">{{ c.short_name }}</h3>
-              <p class="text-muted small mb-2" lang="bn">{{ c.bangla_name }}</p>
-              <p class="feature-desc">{{ c.overview|truncatewords:22 }}</p>
+              <p class="text-muted small mb-2" lang="bn" data-i18n-content="content.{{ c.code }}.bangla_name">{{ c.bangla_name }}</p>
+              <p class="feature-desc" data-i18n-content="content.{{ c.code }}.overview">{{ c.overview|truncatewords:22 }}</p>
               <p class="education-image-caption" data-i18n="edu.class_image_caption">শুধু উদাহরণ — রোগনির্ণয় নয়।</p>
               <span class="feature-link" data-i18n="edu.read_more">আরও পড়ুন</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
             </div>
@@ -64,8 +64,8 @@
               <div class="feature-icon">
                 <i data-lucide="{{ a.icon }}"></i>
               </div>
-              <h3 class="feature-title">{{ a.title }}</h3>
-              <p class="feature-desc">{{ a.summary }}</p>
+              <h3 class="feature-title" data-i18n-content="article.{{ a.slug }}.title">{{ a.title }}</h3>
+              <p class="feature-desc" data-i18n-content="article.{{ a.slug }}.summary">{{ a.summary }}</p>
               <span class="feature-link" data-i18n="edu.read_article">নিবন্ধ পড়ুন</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
             </a>
           </div>

@@ -4,10 +4,9 @@
 // handlers can use translations regardless of their listener order.
 window.DERMA = window.DERMA || {};
 window.DERMA.t = function (key, fallback, params) {
-  var translations = window.DERMA_TRANSLATIONS && window.DERMA_TRANSLATIONS.bn;
-  var value = window.DERMA.language === 'bn' && translations && translations[key]
-    ? translations[key]
-    : (fallback || key);
+  var lang = (window.DERMA && window.DERMA.language) || 'en';
+  var dict = (window.DERMA_TRANSLATIONS && window.DERMA_TRANSLATIONS[lang]) || {};
+  var value = dict[key] ? dict[key] : (fallback || key);
   return value.replace(/\{\{\s*([a-z0-9_.-]+)\s*\}\}/gi, function (match, name) {
     var normalized = name.toLowerCase().replace(/[_.]/g, '-');
     return params && Object.prototype.hasOwnProperty.call(params, normalized)
@@ -195,11 +194,17 @@ function initializeLanguageToggle() {
     captureOriginals();
 
     // 1. Text content (data-i18n)
+    //
+    // Both `bn` and `en` dictionaries are consulted depending on the active
+    // language. When a translation exists for the active language it always
+    // wins; otherwise we restore the originally captured HTML so that pages
+    // whose templates render English directly (navbar, predictor, etc.) keep
+    // working even if a key is missing from the dictionary.
     var els = document.querySelectorAll('[data-i18n]');
     Array.prototype.forEach.call(els, function (el) {
       var key = el.getAttribute('data-i18n');
       var translated = dict[key];
-      if (lang === 'bn' && translated) {
+      if (translated) {
         // Translation values are plain text. Use textContent so user-supplied
         // template values can never become markup.
         el.textContent = interpolate(translated, el);
@@ -220,7 +225,7 @@ function initializeLanguageToggle() {
       }
       var category = (el.getAttribute('data-i18n-category') || '').toLowerCase();
       var categoryKey = 'category.' + category.replace(/\s+/g, '_');
-      if (lang === 'bn' && dict[categoryKey]) {
+      if (dict[categoryKey]) {
         el.textContent = dict[categoryKey];
       } else {
         el.innerHTML = el.getAttribute('data-i18n-category-original-html');
@@ -233,10 +238,35 @@ function initializeLanguageToggle() {
         el.setAttribute('data-i18n-class-original-html', el.innerHTML);
       }
       var code = (el.getAttribute('data-i18n-class') || '').toLowerCase();
-      if (lang === 'bn' && dict['class-name.' + code]) {
+      if (dict['class-name.' + code]) {
         el.textContent = code.toUpperCase() + ' — ' + dict['class-name.' + code];
       } else {
         el.innerHTML = el.getAttribute('data-i18n-class-original-html');
+      }
+    });
+
+    // Server-rendered content blocks (data-i18n-content) — long-form Bengali
+    // paragraphs from content.py (overview, appearance, symptoms, care,
+    // when_to_see_doctor, article body sections, etc.). The template renders
+    // the Bengali copy server-side, so for `lang === 'bn'` we can leave the
+    // captured original in place if no bn override is registered. For
+    // `lang === 'en'` the en dictionary supplies the English copy; if a key
+    // is missing we fall back to the captured (Bengali) original so the page
+    // never shows a blank block.
+    var contentEls = document.querySelectorAll('[data-i18n-content]');
+    Array.prototype.forEach.call(contentEls, function (el) {
+      if (!el.hasAttribute('data-i18n-content-original-html')) {
+        el.setAttribute('data-i18n-content-original-html', el.innerHTML);
+      }
+      var key = el.getAttribute('data-i18n-content') || '';
+      var translated = dict[key];
+      if (translated) {
+        el.textContent = translated;
+      } else {
+        var originalHtml = el.getAttribute('data-i18n-content-original-html');
+        if (originalHtml !== null) {
+          el.innerHTML = originalHtml;
+        }
       }
     });
 
@@ -265,12 +295,13 @@ function initializeLanguageToggle() {
       el.textContent = lang === 'bn' ? translateServerMessage(raw) : raw;
     });
 
-    // 2. Placeholders (data-i18n-ph)
+    // 2. Placeholders (data-i18n-ph) — consult the active dictionary first,
+    // fall back to the originally captured placeholder otherwise.
     var phEls = document.querySelectorAll('[data-i18n-ph]');
     Array.prototype.forEach.call(phEls, function (el) {
       var key = el.getAttribute('data-i18n-ph');
       var translated = dict[key];
-      if (lang === 'bn' && translated) {
+      if (translated) {
         if (!el.hasAttribute('data-i18n-ph-original')) {
           el.setAttribute('data-i18n-ph-original', el.getAttribute('placeholder') || '');
         }
@@ -288,7 +319,7 @@ function initializeLanguageToggle() {
     Array.prototype.forEach.call(tEls, function (el) {
       var key = el.getAttribute('data-i18n-title');
       var translated = dict[key];
-      if (lang === 'bn' && translated) {
+      if (translated) {
         if (!el.hasAttribute('data-i18n-title-original')) {
           el.setAttribute('data-i18n-title-original', el.getAttribute('title') || '');
         }
@@ -306,7 +337,7 @@ function initializeLanguageToggle() {
     Array.prototype.forEach.call(aEls, function (el) {
       var key = el.getAttribute('data-i18n-aria');
       var translated = dict[key];
-      if (lang === 'bn' && translated) {
+      if (translated) {
         if (!el.hasAttribute('data-i18n-aria-original')) {
           el.setAttribute('data-i18n-aria-original', el.getAttribute('aria-label') || '');
         }

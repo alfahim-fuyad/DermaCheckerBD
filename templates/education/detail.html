@@ -19,7 +19,7 @@
     </span>
     <h1 class="mb-1" data-i18n="class-name.{{ info.code }}">{{ info.short_name }}</h1>
     <p class="text-muted mb-1"><code>{{ info.code|upper }}</code> · {{ info.name }}</p>
-    <p class="text-muted mb-4" lang="bn">{{ info.bangla_name }}</p>
+    <p class="text-muted mb-4" lang="bn" data-i18n-content="content.{{ info.code }}.bangla_name">{{ info.bangla_name }}</p>
 
     <figure class="education-detail-figure education-class-card--{{ info.category|slugify }}">
       <div class="education-detail-image">
@@ -56,32 +56,32 @@
       <div class="col-lg-8">
         <div class="app-card mb-4">
           <h2 class="h5 mb-3"><i data-lucide="file-text" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.overview">ওভারভিউ</span></h2>
-          <p lang="bn">{{ info.overview }}</p>
+          <p lang="bn" data-i18n-content="content.{{ info.code }}.overview">{{ info.overview }}</p>
         </div>
 
         <div class="app-card mb-4">
           <h2 class="h5 mb-3"><i data-lucide="eye" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.appearance">সাধারণ চেহারা</span></h2>
-          <p lang="bn">{{ info.appearance }}</p>
+          <p lang="bn" data-i18n-content="content.{{ info.code }}.appearance">{{ info.appearance }}</p>
         </div>
 
         <div class="app-card mb-4">
           <h2 class="h5 mb-3"><i data-lucide="alert-circle" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.symptoms">সাধারণ লক্ষণ ও সতর্ক চিহ্ন</span></h2>
-          <p lang="bn">{{ info.symptoms }}</p>
+          <p lang="bn" data-i18n-content="content.{{ info.code }}.symptoms">{{ info.symptoms }}</p>
         </div>
 
         <div class="app-card mb-4">
           <h2 class="h5 mb-3"><i data-lucide="heart" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.care">ত্বকের যত্ন ও সূর্য সুরক্ষা</span></h2>
-          <p lang="bn">{{ info.care }}</p>
+          <p lang="bn" data-i18n-content="content.{{ info.code }}.care">{{ info.care }}</p>
         </div>
 
         <div class="app-card mb-4">
           <h2 class="h5 mb-3"><i data-lucide="stethoscope" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.when_doctor">কখন ডাক্তার দেখাবেন</span></h2>
-          <p lang="bn">{{ info.when_to_see_doctor }}</p>
+          <p lang="bn" data-i18n-content="content.{{ info.code }}.when_to_see_doctor">{{ info.when_to_see_doctor }}</p>
         </div>
 
         <div class="app-card mb-4" lang="bn">
           <h2 class="h5 mb-3"><i data-lucide="languages" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.bangla_summary">সংক্ষিপ্ত বাংলা সারাংশ</span></h2>
-          <p>{{ info.bangla_summary }}</p>
+          <p data-i18n-content="content.{{ info.code }}.bangla_summary">{{ info.bangla_summary }}</p>
         </div>
       </div>
 

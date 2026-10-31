@@ -631,6 +631,190 @@
       'chatbot.send': 'বার্তা পাঠান',
       'chatbot.open': 'DermaCheckerBD সহকারী খুলুন',
       'chatbot.offline': 'অফলাইন মোড: GEMINI_API_KEY কনফিগার করা নেই। উত্তরগুলো প্রি-রিটেন।',
+    },
+
+    // ============ ENGLISH DICTIONARY ============
+    //
+    // The English dictionary exists so the EN toggle can switch pages whose
+    // templates render Bengali server-side (currently the Skin Health Library:
+    // education/index.html, detail.html, article.html). For every other page
+    // the template already renders English, so the captured "original" HTML
+    // is English and acts as an automatic fallback when a key is missing here.
+    //
+    // The data-i18n-content keys below hold English translations of the
+    // long-form Bengali paragraphs served from apps/education/content.py.
+    en: {
+      // ----- Skin Health Library UI labels -----
+      'edu.eyebrow': 'Skin Health Library',
+      'edu.title': 'Skin Lesion Information',
+      'edu.subtitle': 'Educate yourself on the seven skin lesion classes that the HAM10000 dataset — the data our model was trained on — recognizes. This is general educational information, not a diagnosis. Sources: AAD, CDC, Skin Cancer Foundation, ISIC.',
+      'edu.disclaimer': 'Important: The model\'s prediction only indicates which class the image most closely resembles. It does not confirm that you have this condition. Have any concerning lesion confirmed by a qualified dermatologist.',
+      'edu.read_more': 'Read more',
+      'edu.class_image_caption': 'Example only — not a diagnosis.',
+      'edu.read_article': 'Read article',
+      'edu.general_health': 'General Skin Health',
+      'edu.guides_title': 'Practical Skin Care Guides',
+      'edu.guides_sub': 'Beyond the seven HAM10000 classes, brief guides on sun protection, self-examination, and when to seek professional care.',
+      'edu.breadcrumb_library': 'Skin Health Library',
+      'edu.article': 'Article',
+      'edu.overview': 'Overview',
+      'edu.appearance': 'Typical Appearance',
+      'edu.symptoms': 'Common Symptoms & Warning Signs',
+      'edu.care': 'Skin Care & Sun Protection',
+      'edu.when_doctor': 'When to See a Doctor',
+      'edu.bangla_summary': 'Bengali Summary',
+      'edu.all_classes': 'All HAM10000 Classes',
+      'edu.references': 'References',
+      'edu.more_in_library': 'More in this Library',
+      'edu.reminder': 'Reminder: This page is general educational information. This website\'s prediction does not confirm that you have this condition. Consult a dermatologist for any concerning lesion.',
+      'edu.all_classes_btn': 'All Classes',
+      'edu.analyze_image': 'Analyze an Image',
+      'edu.malignant_desc': 'This class is a malignant (cancerous) condition that requires professional evaluation.',
+      'edu.pre_malignant_desc': 'This class is a pre-cancerous condition that may progress without treatment.',
+      'edu.benign_desc': 'This class is usually benign (non-cancerous), but a dermatologist should confirm it.',
+      'edu.lesion_class': 'Lesion Class',
+      'edu.class_detail_image_caption': 'Example only; this image cannot confirm a diagnosis.',
+      'edu.educational_content': 'Reminder: Educational content. Consult a dermatologist for personal medical advice.',
+
+      // ----- Class names (HAM10000) -----
+      'class-name.akiec': 'Actinic Keratosis / Bowen\'s Disease',
+      'class-name.bcc': 'Basal Cell Carcinoma',
+      'class-name.bkl': 'Benign Keratosis-like Lesion',
+      'class-name.df': 'Dermatofibroma',
+      'class-name.mel': 'Melanoma',
+      'class-name.nv': 'Melanocytic Nevus (Common Mole)',
+      'class-name.vasc': 'Vascular Lesion',
+
+      // ----- Category labels -----
+      'category.benign': 'Benign',
+      'category.malignant': 'Malignant',
+      'category.pre_malignant': 'Pre-malignant',
+      'category.unknown': 'Unknown',
+
+      // ----- Predictor upload page disclaimer -----
+      'upload.important': 'Important:',
+      'upload.disclaimer_body': 'a high confidence score does not mean the prediction is medically correct. This system is developed for educational/research purposes and is not a medical diagnostic tool. Consult a qualified dermatologist or healthcare professional for proper evaluation.',
+
+      // ----- Class long-form content (English) -----
+      // Mirrors apps/education/content.py field by field.
+      'content.nv.overview': 'Melanocytic nevus, commonly called a mole, is a harmless growth of pigment-producing cells (melanocytes). Most adults have 10–40 moles. They may be present at birth or appear later in life, especially during childhood and adolescence. Having many moles is usually harmless over a lifetime. A mole is not cancer — but a small fraction can change into melanoma over time, so any changing mole deserves professional review.',
+      'content.nv.appearance': 'Usually a small (under 6 mm) round or oval spot with smooth, well-defined borders. Colour may be flesh-toned, pink, brown, or black. The surface can be flat or raised, smooth or slightly pebbled. Most moles are uniform in colour and symmetric.',
+      'content.nv.symptoms': 'Usually asymptomatic. Stable moles typically do not itch, bleed, or hurt. Warning signs that warrant review: rapid growth, colour change, irregular borders, itching, bleeding, or pain. The ABCDE rule (Asymmetry, Border, Colour, Diameter, Evolving) helps decide which moles need examination.',
+      'content.nv.care': 'No treatment is needed for stable, benign moles. Sun protection is the most useful daily habit: broad-spectrum SPF 30+ sunscreen, reapplication every 2 hours when outdoors, protective clothing, and avoiding peak UV hours (10am–4pm). Do not scratch or pick moles. Track changes monthly with a mirror or a partner using self-examination.',
+      'content.nv.when_to_see_doctor': 'See a dermatologist if a mole changes in size, shape, colour, or elevation; itches, becomes tender, or bleeds; or looks visually distinct from other moles (the "ugly duckling" sign). Anyone with more than 50 moles, a personal or family history of melanoma, or fair skin with repeated sunburns should have a baseline professional skin examination.',
+
+      'content.mel.overview': 'Melanoma is a serious cancer of melanocytes — the skin\'s pigment-producing cells. It is the most dangerous form of skin cancer because, without early treatment, it can spread to lymph nodes and other organs (metastasize). Early detection and surgical removal yield a high 5-year survival rate; outcomes worsen significantly once it spreads. Ultraviolet (UV) radiation and genetic factors are the main risk factors.',
+      'content.mel.appearance': 'Often an irregularly shaped, multi-coloured lesion — brown, black, blue, red, or white. Borders are usually notched or indistinct. Size is frequently greater than 6 mm (about the diameter of a pencil eraser). The ABCDE rule is the standard screening tool: Asymmetry, Border irregularity, Colour variation, Diameter over 6 mm, Evolving over time.',
+      'content.mel.symptoms': 'Warning signs: a new dark spot that is growing; changes in size, shape, colour, or elevation of an existing mole; a lesion that itches, bleeds, or hurts; a sore that does not heal; pigment spreading beyond the border into surrounding skin. The "ugly duckling" sign — a mole that looks different from all the others — is also a warning.',
+      'content.mel.care': 'Melanoma care requires professional treatment; self-care alone is not enough. Until you see a dermatologist: do not scratch, pick, or attempt home removal; keep the area protected from the sun; do not apply unprescribed creams or remedies. Sun protection (SPF 30+, protective clothing, avoiding peak UV) reduces the risk of new melanomas.',
+      'content.mel.when_to_see_doctor': 'Urgently. If you suspect melanoma — especially a changing, bleeding, or rapidly growing pigmented lesion — see a dermatologist within weeks, not days. Bring a list of when changes started and any previous photos. Do not wait for any AI tool\'s prediction to confirm or rule out; direct examination and biopsy are required.',
+
+      'content.bkl.overview': 'This group collects benign growths including solar lentigines ("sun spots" or "liver spots") and seborrheic keratoses ("barnacles of aging"). They are very common in middle-aged and older adults. They are not cancer and do not turn into cancer, although they can sometimes mimic melanoma clinically — so a dermatologist\'s review is important when in doubt.',
+      'content.bkl.appearance': 'Solar lentigines are flat, light-to-dark brown spots on sun-exposed skin (face, hands, shoulders). Seborrheic keratoses are raised, waxy, "stuck-on" growths whose colour ranges from tan to dark brown. They may look pasted onto the skin surface.',
+      'content.bkl.symptoms': 'Usually asymptomatic. Seborrheic keratoses may occasionally itch or catch on clothing. They do not bleed on their own. Any bleeding, rapid growth, or colour change should be examined because these lesions can mimic melanoma.',
+      'content.bkl.care': 'No treatment is needed unless desired. Cosmetic removal (cryotherapy, curettage, laser) is an option if the lesion is cosmetically bothersome or chronically irritated. Sun protection helps prevent new solar lentigines.',
+      'content.bkl.when_to_see_doctor': 'If a lesion changes rapidly, bleeds, becomes painful, or you are unsure whether it is benign — pigmented lesions can be hard to distinguish clinically, and dermoscopy or biopsy may be required.',
+
+      'content.bcc.overview': 'Basal Cell Carcinoma (BCC) is the most common form of skin cancer. It grows slowly and rarely metastasizes, but if neglected it can cause significant local tissue destruction. BCC is strongly linked to cumulative UV exposure, so it appears most often on sun-exposed areas: face, ears, neck, scalp, shoulders, and back. Early treatment is highly effective.',
+      'content.bcc.appearance': 'Often a pearly or waxy papule, a flat flesh-coloured or brown scar-like patch, or a pink spot with visible blood vessels. It may bleed, scab, and heal in cycles — a "bleed-then-heal" lesion is a classic sign.',
+      'content.bcc.symptoms': 'An open sore that bleeds, oozes, or crusts and persists for weeks; a reddish irritated patch that itches or hurts; a shiny bump that is clear or pearly; a pink growth with a rolled border and central depression; a scar-like area that is white, yellow, or waxy with poorly defined borders.',
+      'content.bcc.care': 'BCC requires professional treatment — surgical removal, Mohs micrographic surgery, curettage, or topical chemotherapy — depending on type and location. Until you see a dermatologist: keep the area clean, do not pick, and protect it from further sun. Sunscreen and protective clothing reduce the risk of new BCCs.',
+      'content.bcc.when_to_see_doctor': 'Book a dermatologist appointment within weeks. Although BCC grows slowly, early treatment minimises scarring and tissue damage. If the lesion bleeds uncontrollably, is on the face near the eye or ear, or grows rapidly, seek care sooner.',
+
+      'content.akiec.overview': 'Actinic Keratoses (AKs) are pre-cancerous lesions caused by long-term UV exposure. They are not yet cancer, but a small percentage can transform into squamous cell carcinoma if untreated. They appear on sun-exposed areas — face, lips, ears, scalp, backs of hands, and forearms. Treatment reduces the risk of progression.',
+      'content.akiec.appearance': 'Rough, scaly, slightly raised patches that feel like sandpaper. Colour may be skin-toned, pink, red, or brown. They are often easier to feel than to see. Size can range from a few millimetres to over a centimetre.',
+      'content.akiec.symptoms': 'Rough texture, mild itching, tenderness, or a stinging sensation — especially when touched. Lips may become dry, cracked, and pale (actinic cheilitis). Bleeding without injury is unusual. New lesions may appear over years on chronically sun-damaged skin.',
+      'content.akiec.care': 'AKs require treatment to prevent progression. Options include cryotherapy, topical 5-fluorouracil or imiquimod, photodynamic therapy, and chemical peels — chosen by a dermatologist based on number, location, and thickness. Sun protection is essential to prevent new lesions.',
+      'content.akiec.when_to_see_doctor': 'Book a dermatologist appointment within weeks. If any lesion becomes thick, tender, bleeding, or rapidly growing, see a clinician sooner — these can be signs of progression to squamous cell carcinoma.',
+
+      'content.vasc.overview': 'Vascular lesions include cherry angioma, angiokeratoma, and other benign growths of blood vessels. They are very common, usually appear in adulthood, and are harmless. They may bleed if injured. They are not cancerous.',
+      'content.vasc.appearance': 'Bright red to deep purple smooth, raised papules, usually small (1–5 mm). Cherry angioma is the most common — a small, bright-red dot typically found on the trunk.',
+      'content.vasc.symptoms': 'Usually asymptomatic. They may bleed if scratched or injured because they are vascular. They typically do not itch or hurt. New spots may appear with age.',
+      'content.vasc.care': 'No treatment is needed. Cosmetic removal (laser, electrocautery) is an option. Avoid scratching or picking to prevent bleeding.',
+      'content.vasc.when_to_see_doctor': 'See a clinician if a vascular lesion bleeds persistently, grows rapidly, changes colour, or becomes painful — these signs are unusual and warrant examination.',
+
+      'content.df.overview': 'Dermatofibroma is a common benign fibrous nodule usually found on the legs. It is thought to be a reactive process to minor injury (insect bite, folliculitis). It is not cancer. Most remain stable for years and need no treatment.',
+      'content.df.appearance': 'A firm, raised papule 3–10 mm in diameter, pink to dark brown in colour. When pinched it dimples inward (the "dimple sign" or fizpatrick sign) — a useful bedside diagnostic clue. The surface may be smooth or slightly scaly.',
+      'content.df.symptoms': 'Usually asymptomatic. May itch or be slightly tender. Does not bleed unless injured. Stable in size over years.',
+      'content.df.care': 'No treatment needed. Surgical removal only for symptomatic, growing, or cosmetically bothersome lesions — recurrence is possible.',
+      'content.df.when_to_see_doctor': 'See a dermatologist if the nodule grows rapidly, changes colour, bleeds, or becomes painful — these are unusual features that warrant examination.',
+
+      // ----- Class secondary names shown under the heading -----
+      'content.nv.bangla_name': 'Melanocytic nevus (common mole)',
+      'content.mel.bangla_name': 'Melanoma (serious skin cancer)',
+      'content.bkl.bangla_name': 'Benign keratosis (harmless skin spot)',
+      'content.bcc.bangla_name': 'Basal cell carcinoma (common skin cancer)',
+      'content.akiec.bangla_name': 'Actinic keratosis (pre-cancer)',
+      'content.vasc.bangla_name': 'Vascular lesion (blood-vessel spot)',
+      'content.df.bangla_name': 'Dermatofibroma (benign skin nodule)',
+
+      // ----- Bengali summary blocks (English caption shown when EN active) -----
+      'content.nv.bangla_summary': 'Melanocytic nevus, or the common mole, is a harmless skin growth. Most people have several moles and they cause no harm over a lifetime. But if a mole changes in size, colour, or border, or starts to bleed, see a dermatologist promptly.',
+      'content.mel.bangla_summary': 'Melanoma is a serious skin cancer. Early detection and removal greatly improve the chance of recovery. If a skin lesion changes in size, colour, or border, bleeds, or grows quickly, consult a dermatologist immediately.',
+      'content.bkl.bangla_summary': 'Benign keratosis or sun spots usually appear on ageing skin and are harmless. They do not turn into cancer. If a spot changes or bleeds, seek medical advice.',
+      'content.bcc.bangla_summary': 'Basal cell carcinoma is the most common skin cancer. It grows slowly, rarely spreads, but can cause local damage if neglected. It is more common on sun-exposed areas. Seek prompt treatment from a clinician.',
+      'content.akiec.bangla_summary': 'Actinic keratosis is a pre-cancer condition. Without proper treatment it can, in some cases, turn into squamous cell carcinoma. If it appears on sun-exposed skin, consult a dermatologist.',
+      'content.vasc.bangla_summary': 'Vascular lesions are usually harmless blood-vessel spots. They are not cancer. However, if a spot changes notably or bleeds, seek medical advice.',
+      'content.df.bangla_summary': 'Dermatofibroma is a harmless nodule usually found on the leg. It is not cancer. It stays stable. If it grows quickly or changes, see a clinician.',
+
+      // ----- Library articles (English) -----
+      'article.abcde-rule.title': 'The ABCDE Rule for Spotting Melanoma',
+      'article.abcde-rule.summary': 'A simple five-point checklist that dermatologists teach patients to self-screen for the warning signs of melanoma.',
+      'article.abcde-rule.body.0.heading': 'What is the ABCDE rule?',
+      'article.abcde-rule.body.0.text': 'The ABCDE rule is a screening tool that helps you decide whether a mole warrants a dermatologist\'s attention. It is not a diagnostic tool — only a professional examination (and biopsy if needed) can confirm or rule out melanoma. Use it as part of a monthly full-body self-examination.',
+      'article.abcde-rule.body.1.heading': 'A — Asymmetry',
+      'article.abcde-rule.body.1.text': 'One half of the lesion does not match the other. Benign moles are usually symmetric; melanomas often have an irregular shape where one side looks different from the other.',
+      'article.abcde-rule.body.2.heading': 'B — Border irregularity',
+      'article.abcde-rule.body.2.text': 'The edges are uneven, notched, scalloped, or blurred rather than smooth and even. An indistinct border is a well-known warning sign.',
+      'article.abcde-rule.body.3.heading': 'C — Colour variation',
+      'article.abcde-rule.body.3.text': 'The colour is not uniform. Multiple shades of brown, black, blue, red, or white within the same lesion are suspicious. Benign moles usually have one or two shades of brown.',
+      'article.abcde-rule.body.4.heading': 'D — Diameter',
+      'article.abcde-rule.body.4.text': 'The lesion is larger than 6 mm (about the diameter of a pencil eraser). Melanomas are usually larger, although they can be smaller when first detected.',
+      'article.abcde-rule.body.5.heading': 'E — Evolving',
+      'article.abcde-rule.body.5.text': 'The lesion is changing in size, shape, colour, or elevation, or has started to itch, bleed, or crust. Change is one of the strongest warning signs — even if other ABCD criteria are not met.',
+      'article.abcde-rule.body.6.heading': 'Limitations',
+      'article.abcde-rule.body.6.text': 'Some melanomas do not fit the ABCDE rule — nodular melanoma, for example, can be small, symmetric, and uniform in colour. The "ugly duckling sign" (a mole that looks different from all the others) is an additional screening tool. If you are concerned about any lesion, professional examination is needed regardless of the ABCDE score.',
+
+      'article.sun-protection.title': 'Sun Protection: The Most Important Habit for Preventing Skin Cancer',
+      'article.sun-protection.summary': 'UV exposure is the main modifiable risk factor for skin cancer. Practical, evidence-based sun-protection habits.',
+      'article.sun-protection.body.0.heading': 'Why it matters',
+      'article.sun-protection.body.0.text': 'Ultraviolet (UV) rays from the sun (and tanning beds) damage the DNA in skin cells. Cumulative damage drives most skin cancers, including basal cell carcinoma, squamous cell carcinoma, and melanoma. The UV index forecast is widely available — when the index is 3 or higher, sun protection is recommended for all skin types.',
+      'article.sun-protection.body.1.heading': 'Sunscreen',
+      'article.sun-protection.body.1.text': 'Use a broad-spectrum, water-resistant sunscreen with SPF 30 or higher. Apply 15 minutes before sun exposure and reapply every 2 hours, after swimming, or after heavy sweating. Use about 30 ml (one shot glass) for full-body coverage. Check the expiry date — most sunscreens lose effectiveness after 3 years.',
+      'article.sun-protection.body.2.heading': 'Protective clothing',
+      'article.sun-protection.body.2.text': 'Long-sleeved shirts, long pants, and tightly woven fabric block more UV than thin, light-coloured fabric. Some clothing carries a UPF (Ultraviolet Protection Factor) rating — UPF 50+ blocks 98% of UV. A wide-brimmed hat protects the face, ears, and neck.',
+      'article.sun-protection.body.3.heading': 'Shade and timing',
+      'article.sun-protection.body.3.text': 'UV intensity is highest between 10am and 4pm. Seek shade during these hours when possible. Remember that water, sand, and snow reflect UV — shade alone does not eliminate exposure.',
+      'article.sun-protection.body.4.heading': 'Sunglasses',
+      'article.sun-protection.body.4.text': 'Wear sunglasses that block 99–100% of UVA and UVB. UV exposure contributes to cataracts and ocular melanoma.',
+      'article.sun-protection.body.5.heading': 'Tanning beds',
+      'article.sun-protection.body.5.text': 'Avoid tanning beds entirely. The International Agency for Research on Cancer classifies UV tanning devices as Group 1 carcinogens (the same category as tobacco and asbestos).',
+
+      'article.self-exam.title': 'How to Perform a Monthly Skin Self-Examination',
+      'article.self-exam.summary': 'A 10-minute monthly routine that catches new and changing lesions early — when treatment is most effective.',
+      'article.self-exam.body.0.heading': 'Why monthly?',
+      'article.self-exam.body.0.text': 'Most skin cancers, including melanoma, are first detected by the patient or their partner — not by a clinician. Monthly self-examination helps you build a mental baseline so that any change becomes noticeable. Combined with annual professional skin exams for high-risk individuals, it catches most concerning lesions early.',
+      'article.self-exam.body.1.heading': 'What you need',
+      'article.self-exam.body.1.text': 'A full-length mirror, a hand-held mirror, a well-lit room, a hair-dryer (for the scalp), and a body map or smartphone camera to track changes over time.',
+      'article.self-exam.body.2.heading': 'The routine',
+      'article.self-exam.body.2.text': '1) Face: examine ears, lips, and around the eyes. 2) Scalp: use a hair-dryer on low to part the hair section by section, or have a partner help. 3) Hands: palms, backs, between fingers, under nails. 4) Arms: full extension, including underarms. 5) Torso: front, back, and sides. Use a hand-held mirror for hard-to-see areas. 6) Lower body: front and back of legs, soles (including soles and between toes), genitals, and buttocks.',
+      'article.self-exam.body.3.heading': 'What to look for',
+      'article.self-exam.body.3.text': 'New moles (especially after age 40), changing moles (size, shape, colour, elevation), the "ugly duckling" that looks different from your other moles, sores that do not heal within 3 weeks, and any lesion that itches, bleeds, or hurts. Use the ABCDE rule as a checklist.',
+      'article.self-exam.body.4.heading': 'When to seek care',
+      'article.self-exam.body.4.text': 'Any change you can see, feel, or photograph over 2–3 months warrants examination. Photograph any concerning lesion next to a ruler with the date — this helps the dermatologist judge whether it is truly evolving.',
+
+      'article.when-to-see-doctor.title': 'When to See a Dermatologist',
+      'article.when-to-see-doctor.summary': 'Clear, situation-specific guidance on when a lesion needs professional examination — and how soon.',
+      'article.when-to-see-doctor.body.0.heading': 'Urgent (within days)',
+      'article.when-to-see-doctor.body.0.text': 'A lesion that is bleeding on its own, growing rapidly, painful, or a sore that has not healed for 3+ weeks. A pigmented lesion that meets any one ABCDE criterion, especially "Evolving". A new dark spot under a nail (especially the thumb or big toe) that is not from injury.',
+      'article.when-to-see-doctor.body.1.heading': 'Soon (within weeks)',
+      'article.when-to-see-doctor.body.1.text': 'A new mole appearing after age 40. A mole that looks different from the others (ugly duckling). Persistent itching, tenderness, or crusting on a lesion. A pearly or waxy raised bump that cycles between bleeding and healing. A pink, scaly patch on sun-exposed skin that does not go away.',
+      'article.when-to-see-doctor.body.2.heading': 'Routine (within months)',
+      'article.when-to-see-doctor.body.2.text': 'An annual full-body skin examination if you have: more than 50 moles; fair skin and a history of repeated sunburns; a personal or family history of skin cancer; immunosuppression; or extensively sun-damaged skin. Anyone with these risk factors should have a baseline examination with a dermatologist.',
+      'article.when-to-see-doctor.body.3.heading': 'What to bring to the appointment',
+      'article.when-to-see-doctor.body.3.text': 'A list of lesions that concern you, with approximate dates when first noticed. Dated photos if available. Your complete medical history, including any prior skin biopsy or removal. A list of medications you take — some cause photosensitivity. Family history of skin cancer.',
+      'article.when-to-see-doctor.body.4.heading': 'What to expect',
+      'article.when-to-see-doctor.body.4.text': 'The dermatologist examines lesions using bright light and a dermatoscope (a 10x magnifier with polarised light). If anything looks suspicious, a small biopsy (usually shave or punch) is performed under local anaesthesia and sent to a pathologist. Results typically take 1–2 weeks.',
     }
   };
 
@@ -865,6 +1049,7 @@
     'upload.remove': 'সরান',
     'upload.rejected': 'আপলোড গ্রহণ করা যায়নি',
     'upload.important': 'গুরুত্বপূর্ণ:',
+    'upload.disclaimer_body': 'উচ্চ কনফিডেন্স স্কোর মানে এই নয় যে প্রেডিকশনটি চিকিৎসাগতভাবে সঠিক। এই সিস্টেমটি শিক্ষামূলক/গবেষণার উদ্দেশ্যে তৈরি এবং এটি কোনো চিকিৎসা রোগনির্ণয়ের টুল নয়। সঠিক মূল্যায়নের জন্য একজন যোগ্য চর্ম বিশেষজ্ঞ বা স্বাস্থ্যসেবা পেশাদারের সাথে পরামর্শ করুন।',
     'upload.form_error': 'নিচের ত্রুটিগুলো ঠিক করুন।',
     'form.validation_required': 'এই ঘরটি পূরণ করুন।',
     'form.validation_email': 'একটি সঠিক ইমেইল ঠিকানা লিখুন।',
