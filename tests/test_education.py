@@ -1,4 +1,8 @@
-"""Tests for the HAM10000 education library and class example assets."""
+"""Tests for the HAM10000 education library and class example assets.
+
+পরীক্ষাগুলো বাংলা বিষয়বস্তুর জন্য আপডেট করা হয়েছে — Skin Health Library এখন
+সম্পূর্ণ বাংলা ভাষায় উপলব্ধ।
+"""
 from pathlib import Path
 
 from django.conf import settings
@@ -6,14 +10,16 @@ from django.test import TestCase
 
 
 class EducationLibraryTests(TestCase):
+    # প্রতিটি ক্লাসের (category_slug, bengali_short_name) — Skin Health Library
+    # এখন সম্পূর্ণ বাংলা ভাষায় রেন্ডার হয়।
     CLASSES = {
-        "akiec": ("pre-malignant", "Actinic keratosis / Bowen disease"),
-        "bcc": ("malignant", "Basal cell carcinoma"),
-        "bkl": ("benign", "Benign keratosis-like lesions"),
-        "df": ("benign", "Dermatofibroma"),
-        "mel": ("malignant", "Melanoma"),
-        "nv": ("benign", "Melanocytic nevus (common mole)"),
-        "vasc": ("benign", "Vascular lesions"),
+        "akiec": ("pre-malignant", "অ্যাকটিনিক কেরাটোসিস / বোয়েন রোগ (প্রি-ক্যান্সার)"),
+        "bcc": ("malignant", "বেসাল সেল কার্সিনোমা (ত্বকের সাধারণ ক্যান্সার)"),
+        "bkl": ("benign", "বেনাইন কেরাটোসিস-সদৃশ ক্ষত (নিরীহ ত্বকের দাগ)"),
+        "df": ("benign", "ডার্মাটোফাইব্রোমা (নিরীহ ত্বকের নোডিউল)"),
+        "mel": ("malignant", "মেলানোমা (গুরুতর ত্বকের ক্যান্সার)"),
+        "nv": ("benign", "মেলানোসাইটিক নেভাস (সাধারণ তিল)"),
+        "vasc": ("benign", "ভাসকুলার লেসন (রক্তবাহী দাগ)"),
     }
 
     def test_class_library_shows_each_example_image_name_and_category_color(self):
@@ -34,4 +40,5 @@ class EducationLibraryTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "images/classes/mel.png")
         self.assertContains(response, "education-class-card--malignant")
-        self.assertContains(response, "this image cannot confirm a diagnosis")
+        # বাংলা ক্যাপশন: "শুধু উদাহরণ; এই ছবি রোগনির্ণয় নিশ্চিত করতে পারে না।"
+        self.assertContains(response, "এই ছবি রোগনির্ণয় নিশ্চিত করতে পারে না")

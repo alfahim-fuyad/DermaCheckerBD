@@ -7,73 +7,77 @@ prediction, only "here is what class X means and what to do in general".
 
 Sources cited per entry; users are encouraged to verify with a
 qualified dermatologist.
+
+সম্পূর্ণ বিষয়বস্তু বাংলায় অনূদিত — Skin Health Library ১০০% বাংলা ভাষায়
+উপলব্ধ। চিকিৎসা সংক্ষিপ্তরূপ (AKIEC, BCC, BKL, DF, MEL, NV, VASC) অপরিবর্তিত
+রাখা হয়েছে এবং প্রাসঙ্গিক ক্ষেত্রে ইংরেজি চিকিৎসা পরিভাষা বন্ধনীতে দেওয়া হয়েছে।
 """
 from __future__ import annotations
 
 # Each entry is a dict with:
 # - code: HAM10000 class code
-# - name: full medical name
-# - short_name: layperson-friendly name (English)
+# - name: full medical name (English)
+# - short_name: layperson-friendly name (Bengali)
 # - bangla_name: Bangla name (rendered in Bengali script)
 # - category: 'benign' | 'malignant' | 'pre malignant'
-# - overview: 1-paragraph plain-English explanation
-# - appearance: typical visual characteristics
-# - symptoms: common symptoms / warning signs
-# - care: skin care and sun protection guidance
-# - when_to_see_doctor: specific situations requiring professional review
+# - overview: 1-paragraph Bengali explanation
+# - appearance: typical visual characteristics (Bengali)
+# - symptoms: common symptoms / warning signs (Bengali)
+# - care: skin care and sun protection guidance (Bengali)
+# - when_to_see_doctor: specific situations requiring professional review (Bengali)
 # - references: list of (label, url) tuples
-# - bangla_summary: short Bangla summary for the assistant / i18n
+# - bangla_summary: short Bangla summary
 
 EDUCATION_CONTENT = {
     "nv": {
         "code": "nv",
         "name": "Melanocytic nevus",
-        "short_name": "Melanocytic nevus (common mole)",
+        "short_name": "মেলানোসাইটিক নেভাস (সাধারণ তিল)",
         "bangla_name": "মেলানোসাইটিক নেভাস (সাধারণ তিল)",
         "category": "benign",
         "overview": (
-            "A melanocytic nevus, commonly called a mole, is a benign "
-            "growth of pigment-producing cells (melanocytes). Most adults "
-            "have 10–40 moles by adulthood. They may be present at birth "
-            "or appear later in life, especially during childhood and "
-            "adolescence. The vast majority remain harmless throughout "
-            "life. A mole is not cancer — but a small subset can transform "
-            "into melanoma over time, so any changing mole warrants "
-            "professional evaluation."
+            "মেলানোসাইটিক নেভাস (Melanocytic nevus), যাকে সাধারণ ভাষায় "
+            "তিল বলা হয়, তা হলো বর্ণকারী কোষের (মেলানোসাইট) একটি নিরীহ "
+            "বৃদ্ধি। বেশিরভাগ প্রাপ্তবয়স্কদের শরীরে ১০–৪০টি তিল থাকে। "
+            "এগুলো জন্মের সময় থাকতে পারে বা জীবনের পরবর্তী সময়ে, বিশেষত "
+            "শৈশব ও কৈশোরে দেখা দিতে পারে। বিপুল সংখ্যক তিল সারাজীবন "
+            "ক্ষতিকর নয়। তিল ক্যান্সার নয় — তবে ক্ষুদ্র সংখ্যক তিল "
+            "সময়ের সাথে মেলানোমায় রূপান্তরিত হতে পারে, তাই পরিবর্তনশীল "
+            "যেকোনো তিল পেশাদার পরীক্ষার যোগ্য।"
         ),
         "appearance": (
-            "Typically a small (under 6 mm) round or oval spot with a "
-            "smooth, well-defined border. Colours range from flesh-toned "
-            "to pink, tan, brown, or black. The surface may be flat or "
-            "raised, smooth or slightly pebbled. Most are uniform in colour "
-            "and symmetric."
+            "সাধারণত ছোট (৬ মিমির কম) গোলাকার বা ডিম্বাকার দাগ যার "
+            "সীমানা মসৃণ ও সুস্পষ্ট। রঙ হতে পারে মাংসল টোন, গোলাপি, "
+            "বাদামী, বা কালো। পৃষ্ঠ সমতল বা উঁচু, মসৃণ বা সামান্য "
+            "দানাদার হতে পারে। বেশিরভাগ তিল রঙে একরঙা এবং প্রতিসম হয়।"
         ),
         "symptoms": (
-            "Usually asymptomatic. A stable mole does not itch, bleed, "
-            "or hurt. Warning signs that should prompt review: rapid "
-            "growth, colour change, irregular border, itching, bleeding, "
-            "or pain. The ABCDE rule (Asymmetry, Border, Colour, Diameter, "
-            "Evolving) helps decide when a mole deserves evaluation."
+            "সাধারণত কোনো লক্ষণ থাকে না। স্থিতিশীল তিলে সাধারণত চুলকানি, "
+            "রক্তপাত বা ব্যথা হয় না। যেসব সতর্ক চিহ্ন দেখা দিলে পরীক্ষা "
+            "করানো উচিত: দ্রুত বৃদ্ধি, রঙ পরিবর্তন, অনিয়মিত সীমানা, চুলকানি, "
+            "রক্তপাত, বা ব্যথা। ABCDE নিয়ম (Asymmetry অপ্রতিসমতা, Border "
+            "সীমানা, Colour রঙ, Diameter ব্যাস, Evolving পরিবর্তনশীলতা) "
+            "নির্ধারণে সাহায্য করে কোন তিল পরীক্ষা করানো প্রয়োজন।"
         ),
         "care": (
-            "No treatment is needed for stable, benign-appearing moles. "
-            "Sun protection is the single most useful daily habit: "
-            "broad-spectrum SPF 30+ sunscreen, re-applied every 2 hours "
-            "outdoors, protective clothing, and avoiding peak UV hours "
-            "(10 AM–4 PM). Do not pick or scratch moles. Track changes "
-            "with monthly self-examination using a mirror or partner."
+            "স্থিতিশীল ও নিরীহ তিলের জন্য কোনো চিকিৎসার প্রয়োজন নেই। "
+            "সূর্য সুরক্ষা সবচেয়ে উপযোগী দৈনন্দিন অভ্যাস: ব্রড-স্পেকট্রাম "
+            "SPF 30+ সানস্ক্রিন, বাইরে থাকলে প্রতি ২ ঘণ্টা অন্তর পুনরায় "
+            "লাগানো, সুরক্ষামূলক পোশাক, এবং সর্বোচ্চ UV সময় (সকাল ১০টা–বিকেল "
+            "৪টা) এড়িয়ে চলা। তিল আঁচড়াবেন বা খুবলাবেন না। মাসিক "
+            "স্ব-পরীক্ষার মাধ্যমে আয়না বা সঙ্গীর সাহায্যে পরিবর্তন পর্যবেক্ষণ করুন।"
         ),
         "when_to_see_doctor": (
-            "See a dermatologist if a mole changes in size, shape, colour, "
-            "or elevation; becomes itchy, tender, or bleeds; or looks "
-            "visually different from your other moles (the 'ugly duckling' "
-            "sign). Anyone with more than 50 moles, a personal or family "
-            "history of melanoma, or fair skin with frequent sunburns "
-            "should have a baseline professional skin check."
+            "কোনো তিলের আকার, আকৃতি, রঙ, বা উচ্চতা পরিবর্তন হলে; চুলকানি, "
+            "কোমলতা, বা রক্তপাত হলে; বা অন্যান্য তিলের থেকে দৃষ্টিগতভাবে আলাদা "
+            "মনে হলে ('ugly duckling' লক্ষণ) একজন চর্ম বিশেষজ্ঞকে দেখান। "
+            "যাদের ৫০টির বেশি তিল আছে, মেলানোমার ব্যক্তিগত বা পারিবারিক "
+            "ইতিহাস আছে, বা উজ্জ্বল ত্বক ও বারবার সূর্যদাহ হয়েছে, তাদের "
+            "একটি ভিত্তিগত পেশাদার ত্বক পরীক্ষা করানো উচিত।"
         ),
         "references": [
-            ("American Academy of Dermatology — Moles", "https://www.aad.org/public/everyday-care/injured-skin/treat-burns-and-cuts/moles"),
-            ("CDC — Skin Cancer Basics", "https://www.cdc.gov/cancer/skin/basic_info/"),
+            ("American Academy of Dermatology — Moles (তিল সম্পর্কে)", "https://www.aad.org/public/everyday-care/injured-skin/treat-burns-and-cuts/moles"),
+            ("CDC — Skin Cancer Basics (ত্বকের ক্যান্সার সম্পর্কে)", "https://www.cdc.gov/cancer/skin/basic_info/"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
         "bangla_summary": (
@@ -87,54 +91,53 @@ EDUCATION_CONTENT = {
     "mel": {
         "code": "mel",
         "name": "Melanoma",
-        "short_name": "Melanoma",
+        "short_name": "মেলানোমা (গুরুতর ত্বকের ক্যান্সার)",
         "bangla_name": "মেলানোমা (গুরুতর ত্বকের ক্যান্সার)",
         "category": "malignant",
         "overview": (
-            "Melanoma is a serious cancer of melanocytes, the pigment-"
-            "producing cells of the skin. It is the most dangerous form "
-            "of skin cancer because it can spread (metastasize) to lymph "
-            "nodes and other organs if not treated early. With early "
-            "detection and surgical removal, the 5-year survival rate "
-            "is very high; once it has spread, outcomes worsen "
-            "significantly. UV exposure and genetic factors are the main "
-            "risk factors."
+            "মেলানোমা (Melanoma) হলো মেলানোসাইট — ত্বকের বর্ণকারী কোষের "
+            "একটি গুরুতর ক্যান্সার। এটি ত্বকের ক্যান্সারের সবচেয়ে "
+            "বিপজ্জনক রূপ, কারণ প্রাথমিক চিকিৎসা না হলে এটি লিম্ফ নোড "
+            "এবং অন্যান্য অঙ্গে ছড়িয়ে পড়তে পারে (মেটাস্টাসাইজ)। প্রাথমিক "
+            "শনাক্তকরণ ও অস্ত্রোপচারের মাধ্যমে অপসারণ করলে ৫-বছরের "
+            "বেঁচে থাকার হার অনেক বেশি; একবার ছড়িয়ে গেলে ফলাফল উল্লেখযোগ্যভাবে "
+            "খারাপ হয়। অতিবেগুনি (UV) রশ্মি ও জিনগত কারণই প্রধান "
+            "ঝুঁকির উপাদান।"
         ),
         "appearance": (
-            "Often an irregularly shaped, multi-coloured patch — brown, "
-            "black, blue, red, or white. The border is usually notched "
-            "or blurred. Size is often over 6 mm (about the diameter of "
-            "a pencil eraser). The ABCDE rule is the standard screening "
-            "tool: Asymmetry, Border irregularity, Colour variation, "
-            "Diameter > 6 mm, Evolving over time."
+            "প্রায়শই একটি অনিয়মিত আকৃতির, বহুরঙা দাগ — বাদামী, কালো, "
+            "নীল, লাল, বা সাদা। সীমানা সাধারণত খাঁজকাটা বা অস্পষ্ট। "
+            "আকার প্রায়ই ৬ মিমির বেশি (পেন্সিল ইরেজারের ব্যাসের সমান)। "
+            "ABCDE নিয়ম হলো আদর্শ স্ক্রিনিং সরঞ্জাম: Asymmetry অপ্রতিসমতা, "
+            "Border সীমানার অনিয়মিততা, Colour রঙের বৈচিত্র্য, Diameter "
+            "৬ মিমির বেশি ব্যাস, Evolving সময়ের সাথে পরিবর্তন।"
         ),
         "symptoms": (
-            "Warning signs: a new dark spot that grows; an existing mole "
-            "that changes in size, shape, colour, or elevation; a spot "
-            "that itches, bleeds, or hurts; a sore that does not heal; "
-            "pigment spreading beyond the border into surrounding skin. "
-            "The 'ugly duckling' sign — a mole that looks different from "
-            "all your others — is also a red flag."
+            "সতর্ক চিহ্ন: নতুন কালো দাগ যা বাড়ছে; বিদ্যমান তিলের আকার, "
+            "আকৃতি, রঙ, বা উচ্চতা পরিবর্তন; এমন দাগ যা চুলকায়, রক্তপাত করে, "
+            "বা ব্যথা করে; এমন ক্ষত যা সারে না; সীমানা ছাড়িয়ে পার্শ্ববর্তী "
+            "ত্বকে বর্ণকণা ছড়িয়ে পড়া। 'Ugly duckling' লক্ষণ — এমন তিল "
+            "যা অন্য সব তিলের থেকে আলাদা দেখায় — তাও একটি সতর্কসংকেত।"
         ),
         "care": (
-            "Melanoma requires professional medical treatment, not self-"
-            "care alone. Until you see a dermatologist: do not scratch, "
-            "pick, or attempt home removal; protect the area from sun; "
-            "do not apply unprescribed creams or remedies. Sun protection "
-            "(SPF 30+, protective clothing, avoiding peak UV) reduces the "
-            "risk of new melanomas."
+            "মেলানোমার চিকিৎসায় পেশাদার চিকিৎসা প্রয়োজন, শুধু স্বয়ংচিকিৎসা "
+            "যথেষ্ট নয়। চর্ম বিশেষজ্ঞকে দেখানো পর্যন্ত: আঁচড়াবেন না, "
+            "খুবলাবেন না, বা ঘরোয়া অপসারণের চেষ্টা করবেন না; অংশটি "
+            "সূর্য থেকে সুরক্ষিত রাখুন; প্রেসক্রাইব না করা ক্রিম বা "
+            "প্রতিকার প্রয়োগ করবেন না। সূর্য সুরক্ষা (SPF 30+, সুরক্ষামূলক "
+            "পোশাক, সর্বোচ্চ UV এড়ানো) নতুন মেলানোমার ঝুঁকি কমায়।"
         ),
         "when_to_see_doctor": (
-            "URGENTLY. If you suspect melanoma — especially a changing, "
-            "bleeding, or rapidly growing pigmented lesion — see a "
-            "dermatologist within days, not weeks. Bring a list of when "
-            "the change started and any photos from earlier. Do not wait "
-            "for the prediction of any AI tool to confirm or deny the "
-            "concern; an in-person exam and biopsy are required."
+            "জরুরিভাবে। আপনি যদি মেলানোমা সন্দেহ করেন — বিশেষত পরিবর্তনশীল, "
+            "রক্তপাতকারী, বা দ্রুত বর্ধনশীল বর্ণকারী ক্ষত — দিন নয়, সপ্তাহের "
+            "মধ্যেই চর্ম বিশেষজ্ঞকে দেখান। পরিবর্তন শুরু হওয়ার সময়কাল ও "
+            "পূর্বের ছবিগুলোর একটি তালিকা সাথে নিয়ে যান। কোনো AI টুলের "
+            "প্রেডিকশন সত্যায়িত বা অস্বীকার করার জন্য অপেক্ষা করবেন না; "
+            "সরাসরি পরীক্ষা ও বায়োপসি প্রয়োজন।"
         ),
         "references": [
-            ("American Academy of Dermatology — Melanoma", "https://www.aad.org/public/diseases/skin-cancer/types/common/melanoma"),
-            ("CDC — Skin Cancer", "https://www.cdc.gov/cancer/skin/"),
+            ("American Academy of Dermatology — Melanoma (মেলানোমা)", "https://www.aad.org/public/diseases/skin-cancer/types/common/melanoma"),
+            ("CDC — Skin Cancer (ত্বকের ক্যান্সার)", "https://www.cdc.gov/cancer/skin/"),
             ("Skin Cancer Foundation — Melanoma", "https://www.skincancer.org/skin-cancer-information/melanoma/"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
@@ -149,46 +152,46 @@ EDUCATION_CONTENT = {
     "bkl": {
         "code": "bkl",
         "name": "Benign keratosis-like lesions",
-        "short_name": "Benign keratosis-like lesions",
+        "short_name": "বেনাইন কেরাটোসিস-সদৃশ ক্ষত (নিরীহ ত্বকের দাগ)",
         "bangla_name": "বিনাইন কেরাটোসিস (নিরীহ ত্বকের দাগ)",
         "category": "benign",
         "overview": (
-            "This class groups together benign growths that include "
-            "solar lentigines ('sun spots' or 'liver spots') and "
-            "seborrheic keratoses ('barnacles of aging'). Both are "
-            "extremely common in middle-aged and older adults. They are "
-            "not cancer and do not turn into cancer, although they can "
-            "sometimes resemble melanoma clinically — which is why a "
-            "dermatologist's examination matters when there is doubt."
+            "এই শ্রেণীতে নিরীহ বৃদ্ধিগুলো একত্রিত করা হয়েছে যার মধ্যে "
+            "রয়েছে সোলার লেন্টিজিনস ('sun spots' বা 'liver spots') এবং "
+            "সেবোরিক কেরাটোসিস ('barnacles of aging' বা বার্ধক্যজনিত দাগ)। "
+            "মধ্যবয়সী ও বয়স্ক প্রাপ্তবয়স্কদের মধ্যে এগুলো অত্যন্ত সাধারণ। "
+            "এগুলো ক্যান্সার নয় এবং ক্যান্সারে পরিণত হয় না, যদিও কখনো "
+            "কখনো ক্লিনিক্যালি মেলানোমার মতো দেখাতে পারে — তাই সন্দেহ থাকলে "
+            "চর্ম বিশেষজ্ঞের পরীক্ষা গুরুত্বপূর্ণ।"
         ),
         "appearance": (
-            "Solar lentigines are flat, light to dark brown patches on "
-            "sun-exposed skin (face, hands, shoulders). Seborrheic "
-            "keratoses are raised, waxy, 'stuck-on' appearing growths "
-            "with colours ranging from tan to dark brown. They may look "
-            "pasted onto the skin surface."
+            "সোলার লেন্টিজিনস হলো সমতল, হালকা থেকে গাঢ় বাদামী দাগ যা "
+            "সূর্য-উন্মুক্ত ত্বকে (মুখ, হাত, কাঁধ) দেখা যায়। সেবোরিক "
+            "কেরাটোসিস হলো উঁচু, মোমের মতো, 'স্টাক-অন' (আঠায় লাগানো) "
+            "বৃদ্ধি যার রঙ বাদামী থেকে গাঢ় বাদামী হতে পারে। এগুলো ত্বকের "
+            "পৃষ্ঠে পেস্ট করা মনে হতে পারে।"
         ),
         "symptoms": (
-            "Generally asymptomatic. Seborrheic keratoses may itch "
-            "occasionally or catch on clothing. They do not bleed on "
-            "their own. Any bleeding, rapid growth, or colour change "
-            "should prompt evaluation because they can mimic melanoma."
+            "সাধারণত কোনো লক্ষণ থাকে না। সেবোরিক কেরাটোসিস মাঝে মাঝে "
+            "চুলকাতে পারে বা পোশাকে আটকে যেতে পারে। এগুলো নিজে থেকে "
+            "রক্তপাত করে না। যেকোনো রক্তপাত, দ্রুত বৃদ্ধি, বা রঙ "
+            "পরিবর্তন পরীক্ষা করানো উচিত কারণ এগুলো মেলানোমার অনুকরণ করতে পারে।"
         ),
         "care": (
-            "No treatment is medically required. Cosmetic removal "
-            "(cryotherapy, curettage, laser) is an option if the lesion "
-            "is cosmetically bothersome or chronically irritated. Sun "
-            "protection helps prevent new solar lentigines."
+            "চিকিৎসা সাপেক্ষে কোনো চিকিৎসার প্রয়োজন নেই। প্রসাধনগত "
+            "অপসারণ (ক্রায়োথেরাপি, কিউরেটেজ, লেজার) একটি বিকল্প যদি "
+            "ক্ষতটি প্রসাধনগতভাবে বিরক্তিকর হয় বা দীর্ঘকালীন উত্তেজিত থাকে। "
+            "সূর্য সুরক্ষা নতুন সোলার লেন্টিজিনস প্রতিরোধে সাহায্য করে।"
         ),
         "when_to_see_doctor": (
-            "See a dermatologist if a lesion changes rapidly, bleeds, "
-            "is painful, or if you are uncertain whether it is benign — "
-            "pigmented lesions can be hard to distinguish clinically, "
-            "and a dermoscopy exam or biopsy may be needed."
+            "কোনো ক্ষত দ্রুত পরিবর্তিত হলে, রক্তপাত করলে, ব্যথাযুক্ত হলে, "
+            "বা আপনি নিশ্চিত না হলে এটি নিরীহ কিনা — বর্ণকারী ক্ষত "
+            "ক্লিনিক্যালি পার্থক্য করা কঠিন হতে পারে, এবং ডার্মোস্কোপি "
+            "পরীক্ষা বা বায়োপসি প্রয়োজন হতে পারে।"
         ),
         "references": [
-            ("American Academy of Dermatology — Seborrheic keratoses", "https://www.aad.org/public/diseases/a-z/seborrheic-keratoses-overview"),
-            ("Mayo Clinic — Age spots (liver spots)", "https://www.mayoclinic.org/diseases-conditions/age-spots/symptoms-causes/syc-20355601"),
+            ("American Academy of Dermatology — Seborrheic keratoses (সেবোরিক কেরাটোসিস)", "https://www.aad.org/public/diseases/a-z/seborrheic-keratoses-overview"),
+            ("Mayo Clinic — Age spots / liver spots (বয়সের দাগ)", "https://www.mayoclinic.org/diseases-conditions/age-spots/symptoms-causes/syc-20355601"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
         "bangla_summary": (
@@ -201,49 +204,48 @@ EDUCATION_CONTENT = {
     "bcc": {
         "code": "bcc",
         "name": "Basal cell carcinoma",
-        "short_name": "Basal cell carcinoma",
+        "short_name": "বেসাল সেল কার্সিনোমা (ত্বকের সাধারণ ক্যান্সার)",
         "bangla_name": "বেসাল সেল কার্সিনোমা (ত্বকের সাধারণ ক্যান্সার)",
         "category": "malignant",
         "overview": (
-            "Basal cell carcinoma (BCC) is the most common form of skin "
-            "cancer. It grows slowly and rarely metastasizes, but it can "
-            "cause significant local tissue destruction if neglected. "
-            "BCC is strongly linked to cumulative UV exposure, so it "
-            "most often appears on sun-exposed areas: face, ears, neck, "
-            "scalp, shoulders, and back. Early treatment is highly "
-            "effective."
+            "বেসাল সেল কার্সিনোমা (Basal Cell Carcinoma, BCC) হলো ত্বকের "
+            "ক্যান্সারের সবচেয়ে সাধারণ রূপ। এটি ধীরে বাড়ে এবং খুব কমই "
+            "মেটাস্টাসাইজ করে, তবে অবহেলা করলে এটি উল্লেখযোগ্য স্থানীয় "
+            "টিস্যু ধ্বংস ঘটাতে পারে। BCC সঞ্চয়ী UV এক্সপোজারের সাথে "
+            "দৃঢ়ভাবে সম্পর্কিত, তাই এটি সর্বাধিক সূর্য-উন্মুক্ত অংশে দেখা যায়: "
+            "মুখ, কান, ঘাড়, স্কাল্প, কাঁধ, এবং পিঠ। প্রাথমিক চিকিৎসা অত্যন্ত "
+            "কার্যকর।"
         ),
         "appearance": (
-            "Often a pearly or waxy bump, a flat flesh-coloured or "
-            "brown scar-like lesion, or a pinkish patch with visible "
-            "blood vessels. It may bleed, scab, and heal cyclically — "
-            "the 'bleeding-then-healing' lesion is a classic sign."
+            "প্রায়শই একটি মুক্তা বা মোমের মতো উঁচু দাগ, একটি সমতল মাংসল "
+            "বা বাদামী দাগ-সদৃশ ক্ষত, বা একটি গোলাপি দাগ যাতে দৃশ্যমান "
+            "রক্তবাহী নালি থাকে। এটি রক্তপাত, স্ক্যাব, এবং সারার চক্র "
+            "চালিয়ে যেতে পারে — 'রক্তপাত-তারপর-সারা' ক্ষত একটি ক্লাসিক লক্ষণ।"
         ),
         "symptoms": (
-            "An open sore that bleeds, oozes, or crusts and persists "
-            "for weeks; a reddish irritated patch that may itch or hurt; "
-            "a shiny bump that is translucent or pearly; a pink growth "
-            "with a rolled border and central indentation; a scar-like "
-            "area that is white, yellow, or waxy with poorly defined "
-            "borders."
+            "একটি উন্মুক্ত ক্ষত যা রক্তপাত, স্রাব, বা ক্রাস্ট করে এবং "
+            "সপ্তাহব্যাপী থাকে; একটি লালচে উত্তেজিত দাগ যা চুলকায় বা "
+            "ব্যথা করে; একটি উজ্জ্বল দাগ যা স্বচ্ছ বা মুক্তার মতো; "
+            "একটি গোলাপি বৃদ্ধি যার গড়ানো সীমানা ও কেন্দ্রীয় খাঁজ আছে; "
+            "একটি দাগ-সদৃশ অঞ্চল যা সাদা, হলুদ, বা মোমের মতো এবং অস্পষ্ট "
+            "সীমানাযুক্ত।"
         ),
         "care": (
-            "BCC requires professional treatment — surgical excision, "
-            "Mohs micrographic surgery, curettage, or topical "
-            "chemotherapy depending on type and location. Until you see "
-            "a dermatologist: keep the area clean, do not pick at it, "
-            "and protect it from further sun. Sunscreen and protective "
-            "clothing reduce the risk of new BCCs."
+            "BCC-এর জন্য পেশাদার চিকিৎসা প্রয়োজন — অস্ত্রোপচারের মাধ্যমে "
+            "অপসারণ, Mohs মাইক্রোগ্রাফিক সার্জারি, কিউরেটেজ, বা টপিক্যাল "
+            "কেমোথেরাপি — প্রকার ও অবস্থান অনুযায়ী। চর্ম বিশেষজ্ঞকে "
+            "দেখানো পর্যন্ত: অংশটি পরিষ্কার রাখুন, খুবলাবেন না, এবং "
+            "আরও সূর্য থেকে সুরক্ষিত রাখুন। সানস্ক্রিন ও সুরক্ষামূলক "
+            "পোশাক নতুন BCC-এর ঝুঁকি কমায়।"
         ),
         "when_to_see_doctor": (
-            "Schedule a dermatology appointment within a few weeks. "
-            "Although BCC grows slowly, early treatment minimises "
-            "scarring and tissue loss. If the lesion is bleeding "
-            "uncontrollably, on the face near the eye or ear, or grows "
-            "rapidly, seek care sooner."
+            "কয়েক সপ্তাহের মধ্যে চর্ম বিশেষজ্ঞের সাথে অ্যাপয়েন্টমেন্ট নিন। "
+            "যদিও BCC ধীরে বাড়ে, প্রাথমিক চিকিৎসা দাগ ও টিস্যু ক্ষতি কমায়। "
+            "যদি ক্ষতটি অনিয়ন্ত্রিতভাবে রক্তপাত করে, চোখ বা কানের কাছে "
+            "মুখে থাকে, বা দ্রুত বাড়ে, তবে দ্রুত চিকিৎসা নিন।"
         ),
         "references": [
-            ("American Academy of Dermatology — BCC", "https://www.aad.org/public/diseases/skin-cancer/types/common/bcc"),
+            ("American Academy of Dermatology — BCC (বেসাল সেল কার্সিনোমা)", "https://www.aad.org/public/diseases/skin-cancer/types/common/bcc"),
             ("Skin Cancer Foundation — BCC", "https://www.skincancer.org/skin-cancer-information/basal-cell-carcinoma/"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
@@ -258,45 +260,45 @@ EDUCATION_CONTENT = {
     "akiec": {
         "code": "akiec",
         "name": "Actinic keratoses and intraepidermal carcinoma",
-        "short_name": "Actinic keratosis / Bowen disease",
+        "short_name": "অ্যাকটিনিক কেরাটোসিস / বোয়েন রোগ (প্রি-ক্যান্সার)",
         "bangla_name": "অ্যাকটিনিক কেরাটোসিস (প্রি-ক্যান্সার)",
         "category": "pre malignant",
         "overview": (
-            "Actinic keratoses (AKs) are pre-cancerous lesions caused by "
-            "long-term UV exposure. They are not cancer yet, but a small "
-            "percentage progress to squamous cell carcinoma if left "
-            "untreated. They appear on sun-exposed areas — face, lips, "
-            "ears, scalp, back of hands, forearms. Treatment reduces the "
-            "risk of progression."
+            "অ্যাকটিনিক কেরাটোসিস (Actinic Keratoses, AKs) হলো দীর্ঘমেয়াদী "
+            "UV এক্সপোজারের কারণে সৃষ্ট প্রি-ক্যান্সারাস (pre-cancerous) ক্ষত। "
+            "এগুলো এখনো ক্যান্সার নয়, তবে চিকিৎসা না করালে ক্ষুদ্র শতাংশ "
+            "স্কোয়ামাস সেল কার্সিনোমায় রূপান্তরিত হতে পারে। এগুলো "
+            "সূর্য-উন্মুক্ত অংশে দেখা যায় — মুখ, ঠোঁট, কান, স্কাল্প, "
+            "হাতের পিঠ, এবং অগ্রবাহু। চিকিৎসা অগ্রগতির ঝুঁকি কমায়।"
         ),
         "appearance": (
-            "Rough, scaly, slightly raised patches that feel like "
-            "sandpaper. Colours range from skin-toned to pink, red, or "
-            "brown. They are often easier to feel than to see. Size "
-            "ranges from a few millimetres to over a centimetre."
+            "অমসৃণ, আঁশযুক্ত, সামান্য উঁচু দাগ যা বালির কাগজের মতো অনুভূত হয়। "
+            "রঙ ত্বকের টোন থেকে গোলাপি, লাল, বা বাদামী হতে পারে। এগুলো "
+            "দেখার চেয়ে অনুভব করা সহজ। আকার কয়েক মিলিমিটার থেকে এক "
+            "সেন্টিমিটারের বেশি হতে পারে।"
         ),
         "symptoms": (
-            "Rough texture, mild itching, tenderness, or a prickling "
-            "sensation, especially when touched. Lips may become dry, "
-            "cracked, and pale (actinic cheilitis). Bleeding is uncommon "
-            "without trauma. New lesions may continue to appear over "
-            "years on chronically sun-damaged skin."
+            "অমসৃণ টেক্সচার, সামান্য চুলকানি, কোমলতা, বা শিরশির অনুভূতি — "
+            "বিশেষত স্পর্শ করলে। ঠোঁট শুষ্ক, ফাটা, এবং ফ্যাকাশে হতে পারে "
+            "(অ্যাকটিনিক চেইলাইটিস)। আঘাত ছাড়া রক্তপাত অস্বাভাবিক। "
+            "দীর্ঘস্থায়ী সূর্য-ক্ষতিগ্রস্ত ত্বকে বছরের পর বছর ধরে নতুন "
+            "ক্ষত দেখা দিতে পারে।"
         ),
         "care": (
-            "AKs warrant treatment to prevent progression. Options "
-            "include cryotherapy, topical 5-fluorouracil or imiquimod, "
-            "photodynamic therapy, and chemical peels — chosen by a "
-            "dermatologist based on number, location, and thickness. "
-            "Sun protection is critical to prevent new lesions."
+            "অগ্রগতি রোধে AKs-এর চিকিৎসা প্রয়োজন। বিকল্পগুলোর মধ্যে "
+            "রয়েছে ক্রায়োথেরাপি, টপিক্যাল 5-ফ্লোরোউরাসিল বা ইমিকুইমড, "
+            "ফটোডায়নামিক থেরাপি, এবং কেমিক্যাল পিল — সংখ্যা, অবস্থান, "
+            "এবং পুরুত্ব অনুযায়ী চর্ম বিশেষজ্ঞ নির্বাচন করেন। নতুন ক্ষত "
+            "প্রতিরোধে সূর্য সুরক্ষা অপরিহার্য।"
         ),
         "when_to_see_doctor": (
-            "Schedule a dermatology appointment within weeks. See a "
-            "doctor sooner if a lesion becomes thick, tender, bleeds, "
-            "or grows rapidly — these are signs of possible progression "
-            "to squamous cell carcinoma."
+            "কয়েক সপ্তাহের মধ্যে চর্ম বিশেষজ্ঞের অ্যাপয়েন্টমেন্ট নিন। "
+            "কোনো ক্ষত পুরু, কোমল, রক্তপাতকারী, বা দ্রুত বর্ধনশীল হলে "
+            "দ্রুত চিকিৎসককে দেখান — এগুলো স্কোয়ামাস সেল কার্সিনোমায় "
+            "অগ্রগতির লক্ষণ হতে পারে।"
         ),
         "references": [
-            ("American Academy of Dermatology — Actinic keratosis", "https://www.aad.org/public/diseases/a-z/actinic-keratoses-overview"),
+            ("American Academy of Dermatology — Actinic keratosis (অ্যাকটিনিক কেরাটোসিস)", "https://www.aad.org/public/diseases/a-z/actinic-keratoses-overview"),
             ("Skin Cancer Foundation — AK", "https://www.skincancer.org/skin-cancer-information/actinic-keratosis/"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
@@ -310,38 +312,39 @@ EDUCATION_CONTENT = {
     "vasc": {
         "code": "vasc",
         "name": "Vascular lesions",
-        "short_name": "Vascular lesions",
+        "short_name": "ভাসকুলার লেসন (রক্তবাহী দাগ)",
         "bangla_name": "ভাসকুলার লেসন (রক্তবাহী দাগ)",
         "category": "benign",
         "overview": (
-            "Vascular lesions include cherry angiomas, angiokeratomas, "
-            "and other benign growths of blood vessels. They are very "
-            "common, usually appear in adulthood, and are harmless. "
-            "They can bleed if traumatised. They are not cancerous."
+            "ভাসকুলার লেসনের (Vascular lesions) মধ্যে রয়েছে চেরি অ্যাঞ্জিওমা, "
+            "অ্যাঞ্জিওকেরাটোমা, এবং রক্তবাহী নালির অন্যান্য নিরীহ বৃদ্ধি। "
+            "এগুলো খুবই সাধারণ, সাধারণত প্রাপ্তবয়স্ক বয়সে দেখা যায়, "
+            "এবং নিরীহ। আঘাত পেলে এগুলো রক্তপাত করতে পারে। এগুলো "
+            "ক্যান্সারাস নয়।"
         ),
         "appearance": (
-            "Bright red to deep purple smooth, raised papules, usually "
-            "small (1–5 mm). Cherry angiomas are the most common — "
-            "small, bright-red dots typically on the trunk."
+            "উজ্জ্বল লাল থেকে গাঢ় বেগুনি মসৃণ, উঁচু প্যাপুল, সাধারণত "
+            "ছোট (১–৫ মিমি)। চেরি অ্যাঞ্জিওমা সবচেয়ে সাধারণ — ছোট, "
+            "উজ্জ্বল-লাল বিন্দু যা সাধারণত ট্রাঙ্কে দেখা যায়।"
         ),
         "symptoms": (
-            "Usually asymptomatic. They may bleed if scratched or "
-            "traumatised because they are vascular. They do not usually "
-            "itch or hurt. New ones can appear with age."
+            "সাধারণত কোনো লক্ষণ থাকে না। এগুলো আঁচড়ালে বা আঘাত পেলে "
+            "রক্তপাত করতে পারে কারণ এগুলো ভাসকুলার। সাধারণত চুলকায় "
+            "না বা ব্যথা করে না। বয়সের সাথে নতুন দাগ দেখা দিতে পারে।"
         ),
         "care": (
-            "No treatment is medically required. Cosmetic removal "
-            "(laser, electrocautery) is an option if desired. Avoid "
-            "scratching or picking to prevent bleeding."
+            "চিকিৎসা সাপেক্ষে কোনো চিকিৎসার প্রয়োজন নেই। ইচ্ছা হলে "
+            "প্রসাধনগত অপসারণ (লেজার, ইলেকট্রোকautery) একটি বিকল্প। "
+            "রক্তপাত এড়াতে আঁচড়ানো বা খুবলানো এড়িয়ে চলুন।"
         ),
         "when_to_see_doctor": (
-            "See a doctor if a vascular lesion bleeds persistently, "
-            "grows rapidly, changes colour, or is painful — these signs "
-            "are unusual and warrant evaluation."
+            "কোনো ভাসকুলার ক্ষত অবিরাম রক্তপাত করলে, দ্রুত বাড়লে, রঙ "
+            "পরিবর্তন করলে, বা ব্যথাযুক্ত হলে চিকিৎসককে দেখান — এই "
+            "লক্ষণগুলো অস্বাভাবিক এবং পরীক্ষা প্রয়োজন।"
         ),
         "references": [
-            ("American Osteopathic College of Dermatology — Cherry angioma", "https://www.aocd.org/page/CherryAngioma"),
-            ("Cleveland Clinic — Hemangioma", "https://my.clevelandclinic.org/health/diseases/21755-hemangioma"),
+            ("American Osteopathic College of Dermatology — Cherry angioma (চেরি অ্যাঞ্জিওমা)", "https://www.aocd.org/page/CherryAngioma"),
+            ("Cleveland Clinic — Hemangioma (হেমাঞ্জিওমা)", "https://my.clevelandclinic.org/health/diseases/21755-hemangioma"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
         "bangla_summary": (
@@ -353,39 +356,39 @@ EDUCATION_CONTENT = {
     "df": {
         "code": "df",
         "name": "Dermatofibroma",
-        "short_name": "Dermatofibroma",
+        "short_name": "ডার্মাটোফাইব্রোমা (নিরীহ ত্বকের নোডিউল)",
         "bangla_name": "ডার্মাটোফাইব্রোমা (নিরীহ ত্বকের নোডিউল)",
         "category": "benign",
         "overview": (
-            "A dermatofibroma is a common benign fibrous nodule usually "
-            "found on the legs. It is thought to be a reactive process "
-            "to minor trauma (insect bite, folliculitis). It is not "
-            "cancer. Most remain stable for years and require no "
-            "treatment."
+            "ডার্মাটোফাইব্রোমা (Dermatofibroma) হলো একটি সাধারণ নিরীহ "
+            "ফাইব্রাস নোডিউল যা সাধারণত পায়ে দেখা যায়। এটি ধারণা করা হয় "
+            "ক্ষুদ্র আঘাতের (পোকার কামড়, ফলিকুলাইটিস) প্রতিক্রিয়ামূলক "
+            "প্রক্রিয়া। এটি ক্যান্সার নয়। বেশিরভাগ বছরের পর বছর "
+            "স্থিতিশীল থাকে এবং কোনো চিকিৎসার প্রয়োজন হয় না।"
         ),
         "appearance": (
-            "A firm, raised papule 3–10 mm in diameter, pink to dark "
-            "brown in colour. It dimples inward when pinched (the "
-            "'dimple sign' or Fitzpatrick sign) — a useful bedside "
-            "diagnostic clue. The surface may be smooth or slightly "
-            "scaly."
+            "একটি শক্ত, উঁচু প্যাপুল যার ব্যাস ৩–১০ মিমি, রঙ গোলাপি থেকে "
+            "গাঢ় বাদামী। চিমটে ধরলে এটি ভেতরের দিকে খাঁজ হয় "
+            "('ডিম্পল সাইন' বা ফিজপ্যাট্রিক সাইন) — এটি বেডসাইড "
+            "ডায়াগনস্টিক সূত্র হিসেবে কার্যকর। পৃষ্ঠ মসৃণ বা সামান্য "
+            "আঁশযুক্ত হতে পারে।"
         ),
         "symptoms": (
-            "Usually asymptomatic. May itch or be tender. It does not "
-            "bleed unless traumatised. Stable in size over years."
+            "সাধারণত কোনো লক্ষণ থাকে না। চুলকাতে পারে বা কোমল হতে পারে। "
+            "আঘাত না পেলে রক্তপাত করে না। বছরের পর বছর আকারে স্থিতিশীল।"
         ),
         "care": (
-            "No treatment needed. Surgical excision is reserved for "
-            "lesions that are symptomatic, growing, or cosmetically "
-            "troubling — recurrence is possible."
+            "চিকিৎসার প্রয়োজন নেই। অস্ত্রোপচারের মাধ্যমে অপসারণ "
+            "শুধুমাত্র লক্ষণযুক্ত, বর্ধনশীল, বা প্রসাধনগতভাবে অস্বস্তিকর "
+            "ক্ষতের জন্য — পুনরাবৃত্তি হতে পারে।"
         ),
         "when_to_see_doctor": (
-            "See a dermatologist if the nodule grows rapidly, changes "
-            "colour, bleeds, or becomes painful — these are atypical "
-            "features that warrant evaluation."
+            "নোডিউলটি দ্রুত বাড়লে, রঙ পরিবর্তন করলে, রক্তপাত করলে, বা "
+            "ব্যথাযুক্ত হলে চর্ম বিশেষজ্ঞকে দেখান — এগুলো অস্বাভাবিক "
+            "বৈশিষ্ট্য যা পরীক্ষা প্রয়োজন।"
         ),
         "references": [
-            ("American Osteopathic College of Dermatology — Dermatofibroma", "https://www.aocd.org/page/Dermatofibroma"),
+            ("American Osteopathic College of Dermatology — Dermatofibroma (ডার্মাটোফাইব্রোমা)", "https://www.aocd.org/page/Dermatofibroma"),
             ("Mayo Clinic — Dermatofibroma", "https://www.mayoclinic.org/diseases-conditions/dermatofibroma/symptoms-causes/syc-20371419"),
             ("ISIC Archive — HAM10000 dataset", "https://doi.org/10.1038/sdata2018.161"),
         ],
@@ -416,310 +419,301 @@ def all_classes() -> list:
 LIBRARY_ARTICLES = {
     "abcde-rule": {
         "slug": "abcde-rule",
-        "title": "The ABCDE rule for spotting melanoma",
+        "title": "মেলানোমা শনাক্তকরণের ABCDE নিয়ম",
         "summary": (
-            "A simple five-point checklist dermatologists teach patients to "
-            "self-screen moles for warning signs of melanoma."
+            "একটি সহজ পাঁচ-পয়েন্ট চেকলিস্ট যা চর্ম বিশেষজ্ঞরা রোগীদের "
+            "মেলানোমার সতর্ক চিহ্নের জন্য স্ব-স্ক্রিনিং করতে শেখান।"
         ),
         "icon": "alert-triangle",
         "body": [
             {
-                "heading": "What is the ABCDE rule?",
+                "heading": "ABCDE নিয়ম কী?",
                 "text": (
-                    "The ABCDE rule is a screening tool that helps you "
-                    "decide whether a mole deserves a dermatologist's "
-                    "attention. It is not a diagnostic tool — only a "
-                    "professional examination (and, when indicated, a "
-                    "biopsy) can confirm or rule out melanoma. Use it "
-                    "monthly as part of a full-body self-examination."
+                    "ABCDE নিয়ম হলো একটি স্ক্রিনিং সরঞ্জাম যা আপনাকে সিদ্ধান্ত "
+                    "নিতে সাহায্য করে কোনো তিল চর্ম বিশেষজ্ঞের দৃষ্টি আকর্ষণ "
+                    "করার যোগ্য কিনা। এটি কোনো ডায়াগনস্টিক টুল নয় — শুধুমাত্র "
+                    "পেশাদার পরীক্ষা (এবং প্রয়োজনে বায়োপসি) মেলানোমা নিশ্চিত "
+                    "বা বাতিল করতে পারে। মাসিক পূর্ণ-শরীর স্ব-পরীক্ষার অংশ "
+                    "হিসেবে এটি ব্যবহার করুন।"
                 ),
             },
             {
-                "heading": "A — Asymmetry",
+                "heading": "A — Asymmetry (অপ্রতিসমতা)",
                 "text": (
-                    "One half of the lesion does not match the other. "
-                    "Benign moles are usually symmetric; melanomas often "
-                    "have an irregular shape where one side looks "
-                    "different from the other."
+                    "ক্ষতের এক অর্ধেক অপর অর্ধেকের সাথে মিলে না। নিরীহ "
+                    "তিল সাধারণত প্রতিসম হয়; মেলানোমায় প্রায়শই অনিয়মিত "
+                    "আকৃতি থাকে যেখানে একপাশ অন্য পাশের চেয়ে আলাদা দেখায়।"
                 ),
             },
             {
-                "heading": "B — Border irregularity",
+                "heading": "B — Border irregularity (সীমানার অনিয়মিততা)",
                 "text": (
-                    "The edges are ragged, notched, scalloped, or blurred "
-                    "instead of smooth and even. Poorly defined borders "
-                    "are a known warning sign."
+                    "প্রান্তগুলো অমসৃণ, খাঁজকাটা, স্ক্যালপযুক্ত, বা অস্পষ্ট "
+                    "মসৃণ ও সমান নয়। অস্পষ্ট সীমানা একটি পরিচিত সতর্কসংকেত।"
                 ),
             },
             {
-                "heading": "C — Colour variation",
+                "heading": "C — Colour variation (রঙের বৈচিত্র্য)",
                 "text": (
-                    "The colour is not uniform. Multiple shades of brown, "
-                    "black, blue, red, or white within a single lesion "
-                    "are suspicious. Benign moles are usually one or two "
-                    "shades of brown."
+                    "রঙ একরকম নয়। একই ক্ষতের মধ্যে বাদামী, কালো, নীল, লাল, "
+                    "বা সাদার একাধিক শেড সন্দেহজনক। নিরীহ তিল সাধারণত "
+                    "বাদামীর এক বা দুটি শেডের হয়।"
                 ),
             },
             {
-                "heading": "D — Diameter",
+                "heading": "D — Diameter (ব্যাস)",
                 "text": (
-                    "The lesion is larger than 6 mm (about the diameter "
-                    "of a pencil eraser). Melanomas are often larger, "
-                    "though they can be smaller when first detected."
+                    "ক্ষতটি ৬ মিমির চেয়ে বড় (পেন্সিল ইরেজারের ব্যাসের সমান)। "
+                    "মেলানোমা সাধারণত বড় হয়, যদিও প্রথম শনাক্তকরণের সময় "
+                    "এগুলো ছোট হতে পারে।"
                 ),
             },
             {
-                "heading": "E — Evolving",
+                "heading": "E — Evolving (পরিবর্তনশীলতা)",
                 "text": (
-                    "The lesion is changing in size, shape, colour, or "
-                    "elevation, or starts to itch, bleed, or crust. "
-                    "Change is one of the strongest warning signs — even "
-                    "if other ABCD criteria are not met."
+                    "ক্ষতটি আকার, আকৃতি, রঙ, বা উচ্চতায় পরিবর্তনশীল, বা "
+                    "চুলকানি, রক্তপাত, বা ক্রাস্ট শুরু করে। পরিবর্তন "
+                    "শক্তিশালীতম সতর্কসংকেতগুলোর একটি — অন্যান্য ABCD "
+                    "মানদণ্ড পূরণ না হলেও।"
                 ),
             },
             {
-                "heading": "Limitations",
+                "heading": "সীমাবদ্ধতা",
                 "text": (
-                    "Some melanomas do not fit the ABCDE rule — "
-                    "nodular melanomas, for instance, can be small, "
-                    "symmetric, and uniformly coloured. The 'ugly "
-                    "duckling sign' (a mole that looks different from "
-                    "all your others) is an additional screening tool. "
-                    "Any lesion that concerns you deserves professional "
-                    "review, regardless of ABCDE score."
+                    "কিছু মেলানোমা ABCDE নিয়মে খাপ খায় না — নোডিউলার "
+                    "মেলানোমা উদাহরণস্বরূপ ছোট, প্রতিসম, এবং একরঙা হতে পারে। "
+                    "'Ugly duckling sign' (এমন তিল যা অন্য সব তিলের থেকে আলাদা "
+                    "দেখায়) একটি অতিরিক্ত স্ক্রিনিং সরঞ্জাম। আপনি যেকোনো "
+                    "ক্ষত নিয়ে উদ্বিগ্ন হলে ABCDE স্কোর নির্বিশেষে "
+                    "পেশাদার পরীক্ষা প্রয়োজন।"
                 ),
             },
         ],
         "references": [
-            ("American Academy of Dermatology — How to spot melanoma", "https://www.aad.org/public/diseases/skin-cancer/find/know-how"),
-            ("Skin Cancer Foundation — melanoma warning signs", "https://www.skincancer.org/skin-cancer-information/melanoma/melanoma-warning-signs/"),
-            ("CDC — Skin cancer prevention", "https://www.cdc.gov/cancer/skin/basic_info/prevention.htm"),
+            ("American Academy of Dermatology — মেলানোমা কীভাবে শনাক্ত করবেন", "https://www.aad.org/public/diseases/skin-cancer/find/know-how"),
+            ("Skin Cancer Foundation — মেলানোমার সতর্কসংকেত", "https://www.skincancer.org/skin-cancer-information/melanoma/melanoma-warning-signs/"),
+            ("CDC — ত্বকের ক্যান্সার প্রতিরোধ", "https://www.cdc.gov/cancer/skin/basic_info/prevention.htm"),
         ],
     },
 
     "sun-protection": {
         "slug": "sun-protection",
-        "title": "Sun protection: the single most important skin-cancer prevention habit",
+        "title": "সূর্য সুরক্ষা: ত্বকের ক্যান্সার প্রতিরোধের সবচেয়ে গুরুত্বপূর্ণ অভ্যাস",
         "summary": (
-            "UV exposure is the leading modifiable risk factor for skin "
-            "cancer. Practical, evidence-based sun-protection habits."
+            "UV এক্সপোজার হলো ত্বকের ক্যান্সারের প্রধান পরিবর্তনযোগ্য "
+            "ঝুঁকির উপাদান। ব্যবহারিক, প্রমাণভিত্তিক সূর্য-সুরক্ষা অভ্যাস।"
         ),
         "icon": "sun",
         "body": [
             {
-                "heading": "Why it matters",
+                "heading": "কেন এটি গুরুত্বপূর্ণ",
                 "text": (
-                    "Ultraviolet (UV) radiation from the sun (and tanning "
-                    "beds) damages skin-cell DNA. Cumulative damage "
-                    "drives most skin cancers, including basal cell "
-                    "carcinoma, squamous cell carcinoma, and melanoma. "
-                    "UV index forecasts are widely available — when the "
-                    "index is 3 or higher, sun protection is "
-                    "recommended for all skin types."
+                    "সূর্যের (এবং ট্যানিং বেডের) অতিবেগুনি (UV) রশ্মি "
+                    "ত্বকের কোষের DNA ক্ষতিগ্রস্ত করে। সঞ্চয়ী ক্ষতি "
+                    "বেসাল সেল কার্সিনোমা, স্কোয়ামাস সেল কার্সিনোমা, এবং "
+                    "মেলানোমা সহ বেশিরভাগ ত্বকের ক্যান্সার চালায়। UV ইনডেক্স "
+                    "পূর্বাভাস ব্যাপকভাবে উপলব্ধ — যখন ইনডেক্স ৩ বা তার "
+                    "বেশি হয়, সব ত্বকের ধরনের জন্য সূর্য সুরক্ষা সুপারিশ করা হয়।"
                 ),
             },
             {
-                "heading": "Sunscreen",
+                "heading": "সানস্ক্রিন",
                 "text": (
-                    "Use a broad-spectrum, water-resistant sunscreen "
-                    "with SPF 30 or higher. Apply 15 minutes before sun "
-                    "exposure and reapply every 2 hours, or after "
-                    "swimming or heavy sweating. Use about 30 ml (one "
-                    "shot glass) for full-body coverage. Check the "
-                    "expiry date — most sunscreens lose effectiveness "
-                    "after 3 years."
+                    "ব্রড-স্পেকট্রাম, ওয়াটার-রেজিস্ট্যান্ট সানস্ক্রিন "
+                    "যাতে SPF ৩০ বা তার বেশি আছে ব্যবহার করুন। সূর্য এক্সপোজারের "
+                    "১৫ মিনিট আগে প্রয়োগ করুন এবং প্রতি ২ ঘণ্টা অন্তর, বা "
+                    "সাঁতার কাটার পর বা ভারী ঘামার পর পুনরায় লাগান। পূর্ণ-শরীর "
+                    "কভারেজের জন্য প্রায় ৩০ মিলি (এক শট গ্লাস) ব্যবহার করুন। "
+                    "মেয়াদ শেষের তারিখ পরীক্ষা করুন — বেশিরভাগ সানস্ক্রিন ৩ বছর "
+                    "পর কার্যকারিতা হারায়।"
                 ),
             },
             {
-                "heading": "Protective clothing",
+                "heading": "সুরক্ষামূলক পোশাক",
                 "text": (
-                    "Long-sleeved shirts, long pants, and tightly-woven "
-                    "fabrics block more UV than thin, light-coloured "
-                    "fabrics. Some clothing carries a UPF (Ultraviolet "
-                    "Protection Factor) rating — UPF 50+ blocks 98% of "
-                    "UV. Wide-brimmed hats protect face, ears, and neck."
+                    "লম্বা হাতার শার্ট, লম্বা প্যান্ট, এবং ঘন বোনা "
+                    "ফ্যাব্রিক পাতলা, হালকা রঙের ফ্যাব্রিকের চেয়ে বেশি UV "
+                    "ব্লক করে। কিছু পোশাকে UPF (Ultraviolet Protection Factor) "
+                    "রেটিং থাকে — UPF 50+ ৯৮% UV ব্লক করে। প্রশস্ত-ব্রিমযুক্ত "
+                    "টুপি মুখ, কান, এবং ঘাড় সুরক্ষিত রাখে।"
                 ),
             },
             {
-                "heading": "Shade and timing",
+                "heading": "ছায়া এবং সময়",
                 "text": (
-                    "UV intensity peaks between 10 AM and 4 PM. Seek "
-                    "shade during these hours when possible. Remember "
-                    "that UV reflects off water, sand, and snow — shade "
-                    "alone does not eliminate exposure."
+                    "সকাল ১০টা থেকে বিকেল ৪টার মধ্যে UV তীব্রতা সর্বোচ্চ "
+                    "হয়। সম্ভব হলে এই সময়ে ছায়া খুঁজুন। মনে রাখবেন পানি, "
+                    "বালি, এবং তুষার থেকে UV প্রতিফলিত হয় — শুধু ছায়া "
+                    "এক্সপোজার সম্পূর্ণ দূর করে না।"
                 ),
             },
             {
-                "heading": "Sunglasses",
+                "heading": "সানগ্লাস",
                 "text": (
-                    "Wear sunglasses that block 99-100% of UVA and UVB. "
-                    "UV exposure contributes to cataracts and ocular "
-                    "melanoma."
+                    "এমন সানগ্লাস পরুন যা ৯৯-১০০% UVA এবং UVB ব্লক করে। "
+                    "UV এক্সপোজার ছানি এবং অকুলার মেলানোমায় অবদান রাখে।"
                 ),
             },
             {
-                "heading": "Tanning beds",
+                "heading": "ট্যানিং বেড",
                 "text": (
-                    "Avoid tanning beds entirely. The International "
-                    "Agency for Research on Cancer classifies UV "
-                    "tanning devices as Group 1 carcinogens (the same "
-                    "category as tobacco and asbestos)."
+                    "ট্যানিং বেড সম্পূর্ণভাবে এড়িয়ে চলুন। International "
+                    "Agency for Research on Cancer UV ট্যানিং ডিভাইসকে "
+                    "Group 1 কার্সিনোজেন (তামাক এবং অ্যাসবেস্টসের মতো একই "
+                    "শ্রেণী) হিসেবে শ্রেণীবদ্ধ করে।"
                 ),
             },
         ],
         "references": [
-            ("WHO — UV radiation and health", "https://www.who.int/health-topics/ultraviolet-radiation"),
-            ("CDC — Sun safety", "https://www.cdc.gov/cancer/skin/basic_info/sun-safety.htm"),
-            ("American Academy of Dermatology — Sunscreen", "https://www.aad.org/public/everyday-care/sun-protection/shade-clothing-sunscreen/sunscreen-how-to-apply"),
+            ("WHO — UV রশ্মি এবং স্বাস্থ্য", "https://www.who.int/health-topics/ultraviolet-radiation"),
+            ("CDC — সূর্য নিরাপত্তা", "https://www.cdc.gov/cancer/skin/basic_info/sun-safety.htm"),
+            ("American Academy of Dermatology — সানস্ক্রিন", "https://www.aad.org/public/everyday-care/sun-protection/shade-clothing-sunscreen/sunscreen-how-to-apply"),
         ],
     },
 
     "self-exam": {
         "slug": "self-exam",
-        "title": "How to perform a monthly skin self-examination",
+        "title": "মাসিক ত্বক স্ব-পরীক্ষা কীভাবে করবেন",
         "summary": (
-            "A 10-minute monthly routine that catches new and changing "
-            "lesions early — when treatment is most effective."
+            "একটি ১০-মিনিটের মাসিক রুটিন যা নতুন ও পরিবর্তনশীল ক্ষত "
+            "প্রাথমিক পর্যায়ে ধরে — যখন চিকিৎসা সবচেয়ে কার্যকর।"
         ),
         "icon": "search",
         "body": [
             {
-                "heading": "Why monthly?",
+                "heading": "কেন মাসিক?",
                 "text": (
-                    "Most skin cancers, including melanoma, are first "
-                    "detected by patients or their partners — not by "
-                    "doctors. A monthly self-exam helps you build a "
-                    "mental baseline so any change is noticeable. "
-                    "Combined with annual professional skin checks for "
-                    "high-risk individuals, this catches the vast "
-                    "majority of concerning lesions early."
+                    "মেলানোমা সহ বেশিরভাগ ত্বকের ক্যান্সার প্রথমে রোগী "
+                    "বা তাদের সঙ্গীরা শনাক্ত করেন — চিকিৎসক নন। মাসিক "
+                    "স্ব-পরীক্ষা আপনাকে একটি মানসিক ভিত্তি তৈরি করতে সাহায্য "
+                    "করে যাতে যেকোনো পরিবর্তন লক্ষণীয় হয়। উচ্চ-ঝুঁকিপূর্ণ "
+                    "ব্যক্তিদের জন্য বার্ষিক পেশাদার ত্বক পরীক্ষার সাথে "
+                    "মিলিত হলে এটি উদ্বেগজনক বেশিরভাগ ক্ষত প্রাথমিক পর্যায়ে "
+                    "ধরে।"
                 ),
             },
             {
-                "heading": "What you need",
+                "heading": "যা যা প্রয়োজন",
                 "text": (
-                    "A full-length mirror, a hand-held mirror, a "
-                    "brightly-lit room, a hair-dryer (for the scalp), "
-                    "and a body map or smartphone camera to track "
-                    "changes over time."
+                    "একটি পূর্ণ-দৈর্ঘ্য আয়না, একটি হ্যান্ড-হেল্ড আয়না, "
+                    "একটি উজ্জ্বল আলোযুক্ত ঘর, একটি হেয়ার-ড্রায়ার "
+                    "(স্কাল্পের জন্য), এবং সময়ের সাথে পরিবর্তন "
+                    "ট্র্যাক করতে একটি বডি ম্যাপ বা স্মার্টফোন ক্যামেরা।"
                 ),
             },
             {
-                "heading": "The routine",
+                "heading": "রুটিন",
                 "text": (
-                    "1) Face: check ears, lips, and around the eyes. "
-                    "2) Scalp: use a hair-dryer on low to part hair "
-                    "section by section, or ask a partner. "
-                    "3) Hands: palms, backs, between fingers, "
-                    "under nails. "
-                    "4) Arms: full extension, including underarms. "
-                    "5) Torso: front, back, and sides. Use the "
-                    "hand-held mirror for hard-to-see areas. "
-                    "6) Lower body: front and back of legs, feet "
-                    "(including soles and between toes), genitals, "
-                    "and buttocks."
+                    "১) মুখ: কান, ঠোঁট, এবং চোখের চারপাশ পরীক্ষা করুন। "
+                    "২) স্কাল্প: হেয়ার-ড্রায়ার কম শক্তিতে ব্যবহার করে "
+                    "চুল অংশে অংশে আলাদা করুন, বা সঙ্গীর সাহায্য নিন। "
+                    "৩) হাত: তালু, পিঠ, আঙুলের মাঝখান, নখের নিচে। "
+                    "৪) বাহু: পূর্ণ প্রসারণ, আন্ডারআর্ম সহ। "
+                    "৫) টর্সো: সামনে, পিঠে, এবং পাশ। দেখতে কঠিন "
+                    "অংশের জন্য হ্যান্ড-হেল্ড আয়না ব্যবহার করুন। "
+                    "৬) নিম্ন শরীর: পায়ের সামনে ও পিঠে, পায়ের তলা "
+                    "(তল এবং আঙুলের মাঝখান সহ), যৌনাঙ্গ, এবং নিতম্ব।"
                 ),
             },
             {
-                "heading": "What to look for",
+                "heading": "যা খুঁজবেন",
                 "text": (
-                    "New moles (especially after age 40), changing "
-                    "moles (size, shape, colour, elevation), the "
-                    "'ugly duckling' that looks different from your "
-                    "other moles, sores that don't heal within 3 weeks, "
-                    "and any lesion that itches, bleeds, or hurts. Use "
-                    "the ABCDE rule as a checklist."
+                    "নতুন তিল (বিশেষত ৪০ বছরের পরে), পরিবর্তনশীল তিল "
+                    "(আকার, আকৃতি, রঙ, উচ্চতা), 'ugly duckling' যা আপনার "
+                    "অন্যান্য তিলের থেকে আলাদা দেখায়, ৩ সপ্তাহের মধ্যে "
+                    "না সারা ক্ষত, এবং এমন যেকোনো ক্ষত যা চুলকায়, "
+                    "রক্তপাত করে, বা ব্যথা করে। চেকলিস্ট হিসেবে ABCDE "
+                    "নিয়ম ব্যবহার করুন।"
                 ),
             },
             {
-                "heading": "When to seek care",
+                "heading": "কখন চিকিৎসা নেবেন",
                 "text": (
-                    "Any change you can see, feel, or photograph over "
-                    "2-3 months deserves evaluation. Take dated photos "
-                    "of any concerning lesion next to a ruler for scale "
-                    "— this helps the dermatologist judge whether it is "
-                    "truly evolving."
+                    "আপনি যেকোনো পরিবর্তন ২-৩ মাস ধরে দেখতে, অনুভব করতে, "
+                    "বা ফটোগ্রাফ করতে পারেন তা পরীক্ষা প্রয়োজন। স্কেল "
+                    "বোঝাতে একটি রুলারের পাশে উদ্বেগজনক যেকোনো ক্ষতের "
+                    "তারিখসহ ছবি তুলুন — এটি চর্ম বিশেষজ্ঞকে বিচার করতে "
+                    "সাহায্য করে এটি সত্যিই বিবর্তনশীল কিনা।"
                 ),
             },
         ],
         "references": [
-            ("American Academy of Dermatology — Skin cancer screenings", "https://www.aad.org/public/diseases/skin-cancer/find/screening"),
-            ("Skin Cancer Foundation — Self-exam", "https://www.skincancer.org/skin-cancer-information/early-detection/"),
-            ("American Cancer Society — Skin exams", "https://www.cancer.org/cancer/melanoma-skin-cancer/detection-diagnosis-staging/detection.html"),
+            ("American Academy of Dermatology — ত্বকের ক্যান্সার স্ক্রিনিং", "https://www.aad.org/public/diseases/skin-cancer/find/screening"),
+            ("Skin Cancer Foundation — স্ব-পরীক্ষা", "https://www.skincancer.org/skin-cancer-information/early-detection/"),
+            ("American Cancer Society — ত্বক পরীক্ষা", "https://www.cancer.org/cancer/melanoma-skin-cancer/detection-diagnosis-staging/detection.html"),
         ],
     },
 
     "when-to-see-doctor": {
         "slug": "when-to-see-doctor",
-        "title": "When to see a dermatologist",
+        "title": "কখন চর্ম বিশেষজ্ঞকে দেখাবেন",
         "summary": (
-            "Clear, situation-specific guidance on when a lesion "
-            "warrants professional review — and how soon."
+            "স্পষ্ট, পরিস্থিতিনির্দিষ্ট নির্দেশনা কখন কোনো ক্ষত "
+            "পেশাদার পরীক্ষা প্রয়োজন — এবং কত দ্রুত।"
         ),
         "icon": "stethoscope",
         "body": [
             {
-                "heading": "Urgent (within days)",
+                "heading": "জরুরি (দিনের মধ্যে)",
                 "text": (
-                    "A lesion that is bleeding spontaneously, growing "
-                    "rapidly, painful, or has been a non-healing sore "
-                    "for 3+ weeks. A pigmented lesion that fits any of "
-                    "the ABCDE criteria, especially 'Evolving'. A new "
-                    "dark streak under a nail (especially thumb or big "
-                    "toe) that is not from trauma."
+                    "এমন ক্ষত যা নিজে থেকে রক্তপাত করছে, দ্রুত বাড়ছে, "
+                    "ব্যথাযুক্ত, বা ৩+ সপ্তাহ ধরে না সারা ক্ষত। এমন "
+                    "বর্ণকারী ক্ষত যা ABCDE মানদণ্ডের যেকোনো একটি পূরণ "
+                    "করে, বিশেষত 'Evolving'। নখের নিচে নতুন কালো দাগ "
+                    "(বিশেষত বুড়ো আঙুল বা পায়ের বড় আঙুলে) যা আঘাতের "
+                    "কারণে নয়।"
                 ),
             },
             {
-                "heading": "Soon (within weeks)",
+                "heading": "শীঘ্রই (সপ্তাহের মধ্যে)",
                 "text": (
-                    "A new mole that appeared after age 40. A mole that "
-                    "looks different from your others (ugly duckling). "
-                    "A persistent itch, tenderness, or crusting on a "
-                    "lesion. A pearly or waxy bump that bleeds and "
-                    "heals cyclically. A pink scaly patch on sun-"
-                    "exposed skin that does not resolve."
+                    "৪০ বছর বয়সের পর নতুন তিল দেখা দিলে। এমন তিল "
+                    "যা অন্যগুলোর থেকে আলাদা দেখায় (ugly duckling)। "
+                    "ক্ষতে স্থায়ী চুলকানি, কোমলতা, বা ক্রাস্টিং। "
+                    "মুক্তা বা মোমের মতো উঁচু দাগ যা রক্তপাত ও সারার "
+                    "চক্র চালায়। সূর্য-উন্মুক্ত ত্বকে গোলাপি আঁশযুক্ত "
+                    "দাগ যা দূর হয় না।"
                 ),
             },
             {
-                "heading": "Routine (within months)",
+                "heading": "নিয়মিত (মাসের মধ্যে)",
                 "text": (
-                    "Annual full-body skin checks if you have: more than "
-                    "50 moles; fair skin with a history of frequent "
-                    "sunburns; personal or family history of skin "
-                    "cancer; immunosuppression; or extensive sun-"
-                    "damaged skin. Anyone with these risk factors "
-                    "should establish a baseline with a dermatologist."
+                    "বার্ষিক পূর্ণ-শরীর ত্বক পরীক্ষা যদি আপনার থাকে: "
+                    "৫০টির বেশি তিল; উজ্জ্বল ত্বক ও বারবার সূর্যদাহের "
+                    "ইতিহাস; ত্বকের ক্যান্সারের ব্যক্তিগত বা পারিবারিক "
+                    "ইতিহাস; ইমিউনোসাপ্রেশন; বা ব্যাপক সূর্য-ক্ষতিগ্রস্ত "
+                    "ত্বক। এই ঝুঁকির উপাদান সহ যেকোনো ব্যক্তির একজন "
+                    "চর্ম বিশেষজ্ঞের সাথে ভিত্তিগত পরীক্ষা করা উচিত।"
                 ),
             },
             {
-                "heading": "What to bring to your appointment",
+                "heading": "অ্যাপয়েন্টমেন্টে যা নিয়ে যাবেন",
                 "text": (
-                    "A list of the lesions that concern you, with "
-                    "approximate dates when you first noticed them. "
-                    "Dated photos if you have them. Your full medical "
-                    "history including any prior skin biopsies or "
-                    "removals. A list of medications you take — some "
-                    "cause photosensitivity. Family history of skin "
-                    "cancer."
+                    "যেসব ক্ষত আপনাকে উদ্বিগ্ন করে তার একটি তালিকা, "
+                    "প্রথম লক্ষ্য করার আনুমানিক তারিখ সহ। থাকলে "
+                    "তারিখসহ ছবি। আপনার সম্পূর্ণ চিকিৎসা ইতিহাস "
+                    "যার মধ্যে পূর্বের যেকোনো ত্বক বায়োপসি বা অপসারণ "
+                    "অন্তর্ভুক্ত। আপনি যে ওষুধগুলো নেন তার তালিকা — "
+                    "কিছু ওষুধ ফটোসেন্সিটিভিটি ঘটায়। ত্বকের "
+                    "ক্যান্সারের পারিবারিক ইতিহাস।"
                 ),
             },
             {
-                "heading": "What to expect",
+                "heading": "কী আশা করবেন",
                 "text": (
-                    "A dermatologist uses bright light and a "
-                    "dermatoscope (a 10x magnifier with polarised "
-                    "light) to examine lesions. If anything looks "
-                    "suspicious, a small biopsy (usually shave or "
-                    "punch) is performed under local anaesthetic and "
-                    "sent to a pathologist. Results typically take "
-                    "1-2 weeks."
+                    "চর্ম বিশেষজ্ঞ উজ্জ্বল আলো এবং ডার্মাটোস্কোপ "
+                    "(পোলারাইজড আলো সহ একটি ১০x ম্যাগনিফায়ার) ব্যবহার "
+                    "করে ক্ষত পরীক্ষা করেন। কিছু সন্দেহজনক মনে হলে, "
+                    "স্থানীয় অ্যানেস্থেসিয়ার অধীনে একটি ছোট বায়োপসি "
+                    "(সাধারণত শেভ বা পাঞ্চ) করা হয় এবং প্যাথলজিস্টের "
+                    "কাছে পাঠানো হয়। ফলাফল সাধারণত ১-২ সপ্তাহ সময় নেয়।"
                 ),
             },
         ],
         "references": [
-            ("American Academy of Dermatology — Find a dermatologist", "https://www.aad.org/find-a-derm"),
-            ("Mayo Clinic — Skin cancer diagnosis", "https://www.mayoclinic.org/diseases-conditions/skin-cancer/diagnosis-treatment/drc-20377605"),
-            ("Bangladesh Dermatological Society", "https://www.bds.org.bd/"),
+            ("American Academy of Dermatology — চর্ম বিশেষজ্ঞ খুঁজুন", "https://www.aad.org/find-a-derm"),
+            ("Mayo Clinic — ত্বকের ক্যান্সার নির্ণয়", "https://www.mayoclinic.org/diseases-conditions/skin-cancer/diagnosis-treatment/drc-20377605"),
+            ("Bangladesh Dermatological Society (বাংলাদেশ ডার্মাটোলজিক্যাল সোসাইটি)", "https://www.bds.org.bd/"),
         ],
     },
 }

@@ -122,7 +122,30 @@ apps/                    # Local apps
 templates/               # Django templates (base, includes/, per-app dirs)
   includes/chatbot.html  # floating chatbot panel + anonymous FAQ quick-reply bar
 static/                  # CSS, JS, images
-  css/main.css           # design system + chatbot alignment / responsive rules
+  css/
+    main.css             # entry point: ordered @imports of the modular files below
+    predictor-result.css # prediction-result report page (loaded only by predictor/result.html)
+    base/                # shared/global layer
+      variables.css      # :root design tokens (colors, fonts, spacing, radius)
+      reset.css          # box-sizing, html/body, headings, a, focus, skip-link
+      typography.css     # placeholder (text rules kept in reset.css to preserve order)
+      global.css         # navbar, footer, buttons, cards, badges, upload-area,
+                         # result-banner, conf-bar, stat-block, qcheck, misc utility,
+                         # privacy-note, empty-state, mobile tweaks, reduced-motion,
+                         # lang-toggle, print styles
+    core/core.css        # home page: hero, scan-panel, how-step
+    accounts/accounts.css# auth-card + password-toggle (login/signup)
+    chatbot/chatbot.css  # floating assistant: FAB, panel, header, messages, FAQ, form
+    doctors/doctors.css  # doctors finder map UI + radar overlay + MapLibre popup
+    education/education.css # HAM10000 class library cards + detail figures
+    predictor/predictor.css # prediction loading overlay (stages, scan line, spinner)
+    tracker/tracker.css  # timeline + btn-link-danger (tracker/detail)
+    multi_image/multi_image.css    # placeholder (uses shared base/global classes)
+    photo_guide/photo_guide.css    # placeholder (uses shared base/global classes)
+    questionnaire/questionnaire.css # placeholder (uses shared base/global classes)
+    reliability/reliability.css     # placeholder (uses shared base/global classes)
+    similar_cases/similar_cases.css # placeholder (uses shared base/global classes)
+    dashboard/dashboard.css         # placeholder (uses shared base/global classes)
   js/main.js             # global JS
   js/image-upload.js     # drag-and-drop upload component
   js/chatbot.js          # floating chatbot client (FAQ buttons + alignment)
@@ -279,6 +302,13 @@ Use `apps.chatbot.faqs.list_faqs(language)` to get the id+question list, and
 
 ### Chatbot UI alignment + responsive layout
 
+- **Header layout** — title and avatar sit on the left (`.chatbot-head-id`),
+  the **Clear** and **Close (X)** icon buttons sit horizontally on the right
+  inside `.chatbot-head-actions { display: flex; flex-wrap: nowrap; gap: 0.4rem }`.
+  This rule is required: each `.chatbot-icon-btn` uses `display: flex` (so it
+  is a block-level flex container); without the parent flex rule the two
+  buttons stack vertically. Verified side-by-side on desktop (1280×900) and
+  mobile (390×844). Styles live in `static/css/chatbot/chatbot.css`.
 - **User messages** are right-aligned (`.chatbot-msg.user` → `justify-content: flex-end`;
   `.chatbot-msg.user .chatbot-msg-bubble { text-align: right }`). The JS also
   sets `bubble.style.textAlign = "right"` per bubble for extra robustness.
@@ -290,6 +320,32 @@ Use `apps.chatbot.faqs.list_faqs(language)` to get the id+question list, and
   wrap awkwardly.
 - **FAQ quick-reply buttons** wrap horizontally and use a pill style; on mobile
   they shrink to keep the bar readable.
+
+### CSS architecture (modular per-app files)
+
+Styles are split per Django app so you can edit one feature without searching
+a monolithic stylesheet. `static/css/main.css` is now an entry point only —
+it contains 11 ordered `@import` statements that pull in the modular files
+in the same order the original `main.css` had them, so existing cascade
+overrides continue to work unchanged.
+
+- To change chatbot styling, edit `static/css/chatbot/chatbot.css`.
+- To change the home hero / scan panel, edit `static/css/core/core.css`.
+- To change the prediction-result report, edit `static/css/predictor-result.css`
+  (this file is loaded separately by `templates/predictor/result.html` via its
+  `extra_head` block; it is NOT `@import`ed by `main.css` to avoid double-load).
+- Shared rules used by ≥2 apps live in `static/css/base/global.css`
+  (navbar, footer, buttons, cards, badges, `upload-area`, `result-banner`,
+  `stat-block`, `qcheck-*`, `medical-disclaimer`, `privacy-note`,
+  `empty-state`, mobile tweaks, reduced-motion, print styles).
+- Design tokens (colors, fonts, spacing, radius) live in
+  `static/css/base/variables.css` as `:root` custom properties.
+
+No Django template was modified to enable the split — the existing
+`<link rel="stylesheet" href="{% static 'css/main.css' %}">` tag in
+`templates/base.html` transparently pulls in every modular file. Comments
+were stripped from all CSS files; only rule bodies, `@import`s,
+`@keyframes`, `@media` blocks, and `:root` tokens remain.
 
 ---
 

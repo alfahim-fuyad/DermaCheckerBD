@@ -8,12 +8,12 @@
   <div class="container-xl" style="max-width: 56rem;">
     <nav aria-label="breadcrumb" data-i18n-aria="aria.breadcrumb" class="mb-3">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'education:index' %}" data-i18n="edu.breadcrumb_library">Skin health library</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'education:index' %}" data-i18n="edu.breadcrumb_library">ত্বক স্বাস্থ্য লাইব্রেরি</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ article.title|truncatewords:6 }}</li>
       </ol>
     </nav>
 
-    <span class="app-badge mb-3"><i data-lucide="{{ article.icon }}" style="width:14px;height:14px;"></i> <span data-i18n="edu.article">Article</span></span>
+    <span class="app-badge mb-3"><i data-lucide="{{ article.icon }}" style="width:14px;height:14px;"></i> <span data-i18n="edu.article">নিবন্ধ</span></span>
     <h1 class="mb-2">{{ article.title }}</h1>
     <p class="text-muted mb-4">{{ article.summary }}</p>
 
@@ -22,14 +22,14 @@
         {% for section in article.body %}
           <div class="app-card mb-3">
             <h2 class="h5 mb-3">{{ section.heading }}</h2>
-            <p>{{ section.text }}</p>
+            <p lang="bn">{{ section.text }}</p>
           </div>
         {% endfor %}
       </div>
 
       <div class="col-lg-4">
         <div class="app-card mb-4">
-          <h2 class="h6 mb-3" data-i18n="edu.more_in_library">More in this library</h2>
+          <h2 class="h6 mb-3" data-i18n="edu.more_in_library">এই লাইব্রেরিতে আরও</h2>
           <ul class="list-unstyled small mb-0">
             {% for a in all_articles %}
               <li class="border-bottom py-2">
@@ -43,7 +43,7 @@
         </div>
 
         <div class="app-card mb-4">
-          <h2 class="h6 mb-3" data-i18n="edu.references">References</h2>
+          <h2 class="h6 mb-3" data-i18n="edu.references">রেফারেন্স</h2>
           <ul class="list-unstyled small mb-0">
             {% for label, url in article.references %}
               <li class="mb-2">
@@ -55,8 +55,8 @@
         </div>
 
         <div class="medical-disclaimer" data-i18n="edu.educational_content">
-          <strong>Reminder:</strong> educational content. Consult a
-          dermatologist for personal medical advice.
+          <strong>রিমাইন্ডার:</strong> শিক্ষামূলক বিষয়বস্তু। ব্যক্তিগত
+          চিকিৎসা পরামর্শের জন্য চর্ম বিশেষজ্ঞের সাথে পরামর্শ করুন।
         </div>
       </div>
     </div>

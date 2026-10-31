@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Skin Health Library · DermaCheckerBD{% endblock %}
+{% block title %}ত্বক স্বাস্থ্য লাইব্রেরি · DermaCheckerBD{% endblock %}
 
 {% block content %}
 <section class="section">
   <div class="container-xl" style="max-width: 64rem;">
-    <span class="app-badge mb-3"><i data-lucide="book-open" style="width:14px;height:14px;"></i> <span data-i18n="edu.eyebrow">Skin health library</span></span>
-    <h1 class="mb-2" data-i18n="edu.title">Skin condition information</h1>
+    <span class="app-badge mb-3"><i data-lucide="book-open" style="width:14px;height:14px;"></i> <span data-i18n="edu.eyebrow">ত্বক স্বাস্থ্য লাইব্রেরি</span></span>
+    <h1 class="mb-2" data-i18n="edu.title">ত্বকের অবস্থা তথ্য</h1>
     <p class="text-muted mb-4" data-i18n="edu.subtitle">
-      Educate yourself about the seven skin-lesion classes that the HAM10000
-      dataset — the data our model was trained on — recognises. This is general
-      educational information from publicly available dermatology references
-      (AAD, CDC, Skin Cancer Foundation, ISIC), not a diagnosis.
+      HAM10000 ডেটাসেট — যে ডেটায় আমাদের মডেল ট্রেইন করা — সেটি যে সাতটি
+      ত্বকের লেসন ক্লাস চেনে সে সম্পর্কে নিজেকে শিক্ষিত করুন। এটি সাধারণ
+      শিক্ষামূলক তথ্য, রোগনির্ণয় নয়। তথ্যসূত্র: AAD, CDC, Skin Cancer
+      Foundation, ISIC।
     </p>
     <div class="medical-disclaimer mb-4" data-i18n="edu.disclaimer">
-      <strong>Important:</strong> the model's prediction only tells you which
-      class an image <em>looks most like</em>. It does <strong>not</strong>
-      confirm that you have that condition. Always confirm any concerning
-      lesion with a qualified dermatologist.
+      <strong>গুরুত্বপূর্ণ:</strong> মডেলের প্রেডিকশন শুধু বোঝায় কোন
+      ক্লাসের সাথে ছবি সবচেয়ে বেশি মিলে। এটি নিশ্চিত করে না যে আপনার এই
+      অবস্থা আছে। যেকোনো উদ্বেগজনক লেসন একজন যোগ্য চর্ম বিশেষজ্ঞের সাথে
+      নিশ্চিত করুন।
     </div>
 
     <div class="row g-4">
@@ -28,20 +28,20 @@
             <figure class="education-class-image-panel">
               <img
                 src="{% static 'images/classes/' %}{{ c.code }}.png"
-                alt="Example image for {{ c.short_name }}"
+                alt="{{ c.short_name }} এর উদাহরণ চিত্র"
                 loading="lazy"
                 decoding="async">
             </figure>
             <div class="education-class-content">
               <div class="education-class-meta">
                 <span class="education-class-code"><code>{{ c.code|upper }}</code></span>
-                <span class="education-class-category" data-i18n-category="{{ c.category }}">{% if c.category == 'pre malignant' %}Pre-malignant{% else %}{{ c.category|title }}{% endif %}</span>
+                <span class="education-class-category" data-i18n-category="{{ c.category }}">{% if c.category == 'pre malignant' %}প্রি-ম্যালিগন্যান্ট{% elif c.category == 'malignant' %}ম্যালিগন্যান্ট{% else %}বেনাইন{% endif %}</span>
               </div>
               <h3 class="feature-title" data-i18n="class-name.{{ c.code }}">{{ c.short_name }}</h3>
               <p class="text-muted small mb-2" lang="bn">{{ c.bangla_name }}</p>
               <p class="feature-desc">{{ c.overview|truncatewords:22 }}</p>
-              <p class="education-image-caption" data-i18n="edu.class_image_caption">Example only — not a diagnosis.</p>
-              <span class="feature-link" data-i18n="edu.read_more">Read more</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+              <p class="education-image-caption" data-i18n="edu.class_image_caption">শুধু উদাহরণ — রোগনির্ণয় নয়।</p>
+              <span class="feature-link" data-i18n="edu.read_more">আরও পড়ুন</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
             </div>
           </a>
         </div>
@@ -51,12 +51,11 @@
     {% if articles %}
       <hr class="my-5">
 
-      <span class="app-badge mb-3"><i data-lucide="library" style="width:14px;height:14px;"></i> <span data-i18n="edu.general_health">General skin health</span></span>
-      <h2 class="mb-3" data-i18n="edu.guides_title">Practical skin care guides</h2>
+      <span class="app-badge mb-3"><i data-lucide="library" style="width:14px;height:14px;"></i> <span data-i18n="edu.general_health">সাধারণ ত্বক স্বাস্থ্য</span></span>
+      <h2 class="mb-3" data-i18n="edu.guides_title">ব্যবহারিক ত্বক যত্ন গাইড</h2>
       <p class="text-muted mb-4" data-i18n="edu.guides_sub">
-        Beyond the seven HAM10000 classes, here are short, evidence-based
-        guides on sun protection, self-examination, and when to seek
-        professional care.
+        সাতটি HAM10000 ক্লাসের বাইরে, এখানে সূর্য সুরক্ষা, স্ব-পরীক্ষা এবং
+        কখন পেশাদার যত্ন নেবেন তার সংক্ষিপ্ত গাইড।
       </p>
       <div class="row g-4">
         {% for a in articles %}
@@ -67,7 +66,7 @@
               </div>
               <h3 class="feature-title">{{ a.title }}</h3>
               <p class="feature-desc">{{ a.summary }}</p>
-              <span class="feature-link" data-i18n="edu.read_article">Read article</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+              <span class="feature-link" data-i18n="edu.read_article">নিবন্ধ পড়ুন</span> <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
             </a>
           </div>
         {% endfor %}

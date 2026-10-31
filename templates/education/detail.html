@@ -8,14 +8,14 @@
   <div class="container-xl" style="max-width: 56rem;">
     <nav aria-label="breadcrumb" data-i18n-aria="aria.breadcrumb" class="mb-3">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'education:index' %}" data-i18n="edu.breadcrumb_library">Skin health library</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'education:index' %}" data-i18n="edu.breadcrumb_library">ত্বক স্বাস্থ্য লাইব্রেরি</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ info.code|upper }}</li>
       </ol>
     </nav>
 
     <span class="app-badge mb-3">
       <i data-lucide="book-open" style="width:14px;height:14px;"></i>
-      <span data-i18n-category="{{ info.category }}">{% if info.category == 'pre malignant' %}Pre-malignant{% else %}{{ info.category|title }}{% endif %}</span>
+      <span data-i18n-category="{{ info.category }}">{% if info.category == 'pre malignant' %}প্রি-ম্যালিগন্যান্ট{% elif info.category == 'malignant' %}ম্যালিগন্যান্ট{% else %}বেনাইন{% endif %}</span>
     </span>
     <h1 class="mb-1" data-i18n="class-name.{{ info.code }}">{{ info.short_name }}</h1>
     <p class="text-muted mb-1"><code>{{ info.code|upper }}</code> · {{ info.name }}</p>
@@ -25,12 +25,12 @@
       <div class="education-detail-image">
         <img
           src="{% static 'images/classes/' %}{{ info.code }}.png"
-          alt="Example image for {{ info.short_name }}"
+          alt="{{ info.short_name }} এর উদাহরণ চিত্র"
           decoding="async">
       </div>
       <figcaption>
         <strong data-i18n="class-name.{{ info.code }}">{{ info.short_name }}</strong>
-        <span class="d-block mt-1" data-i18n="edu.class_detail_image_caption">Example only — this image cannot confirm a diagnosis.</span>
+        <span class="d-block mt-1" data-i18n="edu.class_detail_image_caption">শুধু উদাহরণ; এই ছবি রোগনির্ণয় নিশ্চিত করতে পারে না।</span>
       </figcaption>
     </figure>
 
@@ -39,14 +39,14 @@
         <i data-lucide="{% if info.category == 'malignant' %}alert-octagon{% elif info.category == 'pre malignant' %}alert-triangle{% else %}shield-check{% endif %}"></i>
       </div>
       <div>
-        <div class="banner-title"><span data-i18n-category="{{ info.category }}">{% if info.category == 'pre malignant' %}Pre-malignant{% else %}{{ info.category|title }}{% endif %}</span> <span data-i18n="edu.lesion_class">lesion class</span></div>
+        <div class="banner-title"><span data-i18n-category="{{ info.category }}">{% if info.category == 'pre malignant' %}প্রি-ম্যালিগন্যান্ট{% elif info.category == 'malignant' %}ম্যালিগন্যান্ট{% else %}বেনাইন{% endif %}</span> <span data-i18n="edu.lesion_class">লেসন ক্লাস</span></div>
         <div class="banner-sub">
           {% if info.category == 'malignant' %}
-            <span data-i18n="edu.malignant_desc">This class represents a malignant (cancerous) condition that requires professional evaluation.</span>
+            <span data-i18n="edu.malignant_desc">এই ক্লাস একটি ম্যালিগন্যান্ট (ক্যান্সারাস) অবস্থা যা পেশাদার মূল্যায়ন প্রয়োজন।</span>
           {% elif info.category == 'pre malignant' %}
-            <span data-i18n="edu.pre_malignant_desc">This class represents a pre-cancerous condition that may progress if untreated.</span>
+            <span data-i18n="edu.pre_malignant_desc">এই ক্লাস একটি প্রি-ক্যান্সারাস অবস্থা যা চিকিৎসা ছাড়া অগ্রগতি হতে পারে।</span>
           {% else %}
-            <span data-i18n="edu.benign_desc">This class is generally benign (non-cancerous), but a dermatologist should confirm.</span>
+            <span data-i18n="edu.benign_desc">এই ক্লাস সাধারণত বেনাইন (নন-ক্যান্সারাস), কিন্তু চর্ম বিশেষজ্ঞ নিশ্চিত করা উচিত।</span>
           {% endif %}
         </div>
       </div>
@@ -55,28 +55,28 @@
     <div class="row g-4">
       <div class="col-lg-8">
         <div class="app-card mb-4">
-          <h2 class="h5 mb-3"><i data-lucide="file-text" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.overview">Overview</span></h2>
-          <p>{{ info.overview }}</p>
+          <h2 class="h5 mb-3"><i data-lucide="file-text" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.overview">ওভারভিউ</span></h2>
+          <p lang="bn">{{ info.overview }}</p>
         </div>
 
         <div class="app-card mb-4">
-          <h2 class="h5 mb-3"><i data-lucide="eye" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.appearance">Typical appearance</span></h2>
-          <p>{{ info.appearance }}</p>
+          <h2 class="h5 mb-3"><i data-lucide="eye" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.appearance">সাধারণ চেহারা</span></h2>
+          <p lang="bn">{{ info.appearance }}</p>
         </div>
 
         <div class="app-card mb-4">
-          <h2 class="h5 mb-3"><i data-lucide="alert-circle" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.symptoms">Common symptoms &amp; warning signs</span></h2>
-          <p>{{ info.symptoms }}</p>
+          <h2 class="h5 mb-3"><i data-lucide="alert-circle" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.symptoms">সাধারণ লক্ষণ ও সতর্ক চিহ্ন</span></h2>
+          <p lang="bn">{{ info.symptoms }}</p>
         </div>
 
         <div class="app-card mb-4">
-          <h2 class="h5 mb-3"><i data-lucide="heart" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.care">Skin care &amp; sun protection</span></h2>
-          <p>{{ info.care }}</p>
+          <h2 class="h5 mb-3"><i data-lucide="heart" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.care">ত্বকের যত্ন ও সূর্য সুরক্ষা</span></h2>
+          <p lang="bn">{{ info.care }}</p>
         </div>
 
         <div class="app-card mb-4">
-          <h2 class="h5 mb-3"><i data-lucide="stethoscope" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.when_doctor">When to see a doctor</span></h2>
-          <p>{{ info.when_to_see_doctor }}</p>
+          <h2 class="h5 mb-3"><i data-lucide="stethoscope" style="width:18px;height:18px;" class="me-2"></i><span data-i18n="edu.when_doctor">কখন ডাক্তার দেখাবেন</span></h2>
+          <p lang="bn">{{ info.when_to_see_doctor }}</p>
         </div>
 
         <div class="app-card mb-4" lang="bn">
@@ -87,7 +87,7 @@
 
       <div class="col-lg-4">
         <div class="app-card mb-4">
-          <h2 class="h6 mb-3" data-i18n="edu.all_classes">All HAM10000 classes</h2>
+          <h2 class="h6 mb-3" data-i18n="edu.all_classes">সব HAM10000 ক্লাস</h2>
           <ul class="list-unstyled small mb-0">
             {% for c in all_classes %}
               <li class="border-bottom py-2">
@@ -101,7 +101,7 @@
         </div>
 
         <div class="app-card mb-4">
-          <h2 class="h6 mb-3" data-i18n="edu.references">References</h2>
+          <h2 class="h6 mb-3" data-i18n="edu.references">রেফারেন্স</h2>
           <ul class="list-unstyled small mb-0">
             {% for label, url in info.references %}
               <li class="mb-2">
@@ -113,20 +113,20 @@
         </div>
 
         <div class="medical-disclaimer" data-i18n="edu.reminder">
-          <strong>Reminder:</strong> this page is general educational
-          information. A prediction from this website does not confirm you
-          have this condition. Consult a dermatologist for any concerning
-          lesion.
+          <strong>রিমাইন্ডার:</strong> এই পেজ সাধারণ শিক্ষামূলক
+          তথ্য। এই ওয়েবসাইটের প্রেডিকশন আপনার এই অবস্থা আছে তা নিশ্চিত
+          করে না। যেকোনো উদ্বেগজনক লেসনের জন্য চর্ম বিশেষজ্ঞের সাথে
+          পরামর্শ করুন।
         </div>
       </div>
     </div>
 
     <div class="mt-5 d-flex flex-wrap gap-2">
       <a href="{% url 'education:index' %}" class="btn app-btn-outline btn-sm">
-        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> <span data-i18n="edu.all_classes_btn">All classes</span>
+        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> <span data-i18n="edu.all_classes_btn">সব ক্লাস</span>
       </a>
       <a href="{% url 'predictor:upload' %}" class="btn app-btn-primary btn-sm">
-        <i data-lucide="scan-search" style="width:14px;height:14px;"></i> <span data-i18n="edu.analyze_image">Analyze an image</span>
+        <i data-lucide="scan-search" style="width:14px;height:14px;"></i> <span data-i18n="edu.analyze_image">একটি ছবি বিশ্লেষণ করুন</span>
       </a>
     </div>
   </div>
