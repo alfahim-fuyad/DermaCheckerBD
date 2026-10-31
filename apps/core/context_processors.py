@@ -1,6 +1,7 @@
 """Context processor exposing feature flags + chatbot config to all templates."""
 from django.conf import settings
 from apps.chatbot.faqs import list_faqs
+from apps.common.services.ai_providers import FallbackChatService
 from apps.common.services.gemini import GeminiService
 
 
@@ -32,9 +33,19 @@ def feature_flags(request):
     )
     faq_lang = "bn" if ui_language == "bn" or request.COOKIES.get("derma_lang") == "bn" else "en"
 
+    # ``chatbot_configured`` is True when at least one AI provider
+    # (Gemini / Groq / OpenRouter) is configured. The chatbot template
+    # uses this to decide whether to show the "offline mode" note.
+    # For backward compatibility we also keep GeminiService.is_configured()
+    # as a fallback for callers that import it directly.
+    try:
+        chatbot_configured = FallbackChatService.is_any_configured()
+    except Exception:
+        chatbot_configured = GeminiService.is_configured()
+
     return {
         "similar_cases_enabled": settings.SIMILAR_CASES_ENABLED,
-        "chatbot_configured": GeminiService.is_configured(),
+        "chatbot_configured": chatbot_configured,
         "chatbot_role": chatbot_role,
         "chatbot_scope": chatbot_scope,
         "chatbot_faqs": list_faqs(faq_lang),

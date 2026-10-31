@@ -270,16 +270,63 @@ The floating chatbot has two distinct paths enforced at the top of
   sign-in redirect). The guidance response also carries `"faqs": [...]` so the
   frontend can render the buttons.
 
-### Authenticated (logged-in) users — full Gemini-powered chatbot
+### Authenticated (logged-in) users — full multi-provider AI chatbot
 
-- All existing chatbot behavior is preserved: Gemini-powered general answers,
+- All existing chatbot behavior is preserved: AI-powered general answers,
   the user's own dashboard summary (reconstructed from the authenticated
   request — never from browser-supplied data), and aggregate-only totals for
   staff / doctors with the medical-queue permission.
-- The `faq_id` / `faqs` fields are NOT included on authenticated responses —
-  the frontend hides the FAQ bar for logged-in users.
-- When `GEMINI_API_KEY` is unset, the authenticated path falls back to the
-  canned educational replies (existing behavior).
+- The `faq_id` / `faqs` fields are NOT included on authenticated free-text
+  responses — the frontend hides the FAQ bar for logged-in users.
+  **Authenticated users can still click a FAQ button** (if the frontend
+  sends `faq_id`) and receive the canned FAQ answer — the 7 Q&A support
+  is available to ALL users, logged in or not.
+- When no AI provider is configured, the authenticated path falls back to
+  the canned educational replies (existing behavior).
+
+### Multi-Provider AI Fallback System (Gemini → Groq → OpenRouter)
+
+The chatbot uses a cascading provider system for the authenticated AI
+path. Providers are tried in the order configured by
+`CHATBOT_PROVIDER_ORDER` (default `gemini,groq,openrouter`):
+
+1. **Gemini** (primary) — `google-genai` SDK, `GEMINI_API_KEY`
+2. **Groq** (secondary) — OpenAI-compatible HTTP API, `GROQ_API_KEY`
+3. **OpenRouter** (tertiary) — OpenAI-compatible HTTP API, `OPENROUTER_API_KEY`
+
+When a provider fails with a **retryable** error (HTTP 429 rate limit,
+quota exhaustion, timeout, 5xx server error), it is placed on a
+**cooldown** for `CHATBOT_PROVIDER_COOLDOWN_SECONDS` seconds (default 60)
+and the cascade immediately tries the next provider. While a provider is
+on cooldown it is skipped entirely — the cascade does not waste a request
+on a provider that just failed.
+
+The cascade logs every provider attempt to `ChatUsageLog` (provider, model,
+success, error code, latency, token usage, timestamp) and persists every
+authenticated user/model turn to `ChatConversation` / `ChatMessage`
+(server-side conversation history, capped at `CHATBOT_HISTORY_KEEP`
+turns per user).
+
+New endpoints:
+
+| Endpoint | Method | Access | Purpose |
+| --- | --- | --- | --- |
+| `/chatbot/message/` | POST | All users | FAQ button clicks work for everyone; AI cascade requires login |
+| `/chatbot/history/` | GET | Login required | Returns the persisted server-side conversation |
+| `/chatbot/clear/` | POST | Login required | Clears the persisted conversation |
+| `/chatbot/providers/` | GET | Login required | Provider configuration + cooldown state (no API keys exposed) |
+| `/chatbot/usage/` | GET | Staff only | Recent `ChatUsageLog` rows + per-provider success-rate summary |
+
+Management command for clearing cooldowns after a provider outage:
+
+```bash
+python manage.py clear_chat_cooldowns              # clear all providers
+python manage.py clear_chat_cooldowns gemini       # clear only Gemini
+```
+
+The `provider` field in the `/chatbot/message/` response payload tells
+the caller which provider answered (`"gemini"`, `"groq"`, `"openrouter"`,
+or `"canned"` when every provider failed).
 
 ### The 7 predefined FAQs
 

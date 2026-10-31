@@ -1,33 +1,37 @@
-"""Gemini chatbot views.
+"""Multi-provider chatbot views.
 
-SECURITY:
-- POST /chatbot/message/ accepts JSON {message: "..."} and returns {reply: "..."}.
-- CSRF token is required; the frontend sends X-CSRFToken on every request.
-- Rate-limited per-IP to prevent abuse.
-- No image bytes are accepted here.
-- The Gemini API key is used server-side only; it is never exposed to the frontend.
+SECURITY + ACCESS CONTRACT:
+- POST /chatbot/message/  — Open to ALL users (anonymous and authenticated).
+    * Anonymous users ONLY ever receive the 7 predefined FAQs (see
+      ``apps.chatbot.faqs``). No AI provider is ever called for them.
+    * Authenticated users get the full AI-powered chatbot via the
+      multi-provider fallback cascade (Gemini -> Groq -> OpenRouter).
+    * The 7 FAQ button clicks (``faq_id`` payload field) are available
+      to ALL users — anonymous and authenticated — so the 7 Q&A support
+      works for everyone.
+- GET  /chatbot/history/   — Login required. Returns the persisted
+                              server-side conversation for the user.
+- POST /chatbot/clear/     — Login required. Clears the persisted
+                              conversation.
+- GET  /chatbot/providers/ — Login required. Returns provider health and
+                              cooldown state (no API keys exposed).
+- GET  /chatbot/usage/     — Staff only. Returns recent ChatUsageLog rows.
 
-ANONYMOUS vs AUTHENTICATED (privacy + RAM/CPU contract):
-- Anonymous (logged-out) visitors NEVER trigger a Gemini API call. They
-  receive only the 7 predefined FAQs in this repo (see ``apps.chatbot.faqs``).
-  This keeps Render memory and CPU flat regardless of anonymous traffic and
-  prevents paid Gemini calls from public visitors.
-- Authenticated users keep the full existing chatbot service: Gemini-powered
-  replies, the user's own dashboard summary (read from the authenticated
-  request — never from browser-supplied data), and aggregate staff totals
-  for users with the medical-queue permission.
-
-RESPONSE PAYLOAD CONTRACT (unchanged for authenticated users):
+PAYLOAD CONTRACT (unchanged from the previous single-provider version
+plus a new ``provider`` field for authenticated AI replies):
 - ``reply``    – the reply text (HTML allowlisted client-side).
-- ``offline``  – True when GeminiService is not configured (informational).
+- ``offline``  – True when no provider is configured (informational).
 - ``scope``    – "public" | "private" | "staff".
 - ``authed``   – bool, mirrors request.user.is_authenticated.
-- ``faq_id``   – present only for anonymous FAQ replies, identifies which FAQ
-                 was answered. Empty string when the anonymous message was a
+- ``faq_id``   – present only for FAQ replies, identifies which FAQ
+                 was answered. Empty string when the message was a
                  free-text query that did not match any FAQ.
 - ``faqs``     – present only on the welcome / guidance response, the 7 FAQs
-                 so the frontend can render the quick-reply buttons without a
-                 second round trip.
+                 so the frontend can render the quick-reply buttons without
+                 a second round trip.
+- ``provider`` – present for authenticated AI replies: which provider
+                 answered ("gemini" / "groq" / "openrouter" / "canned").
+                 Empty string for FAQ replies.
 """
 import json
 import logging
@@ -36,15 +40,18 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.http import JsonResponse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django_ratelimit.decorators import ratelimit
 
 from apps.chatbot.faqs import (
     FAQS, find_faq_id_by_text, get_faq_answer, list_faqs,
 )
+from apps.chatbot.models import ChatConversation, ChatMessage, ChatUsageLog
+from apps.common.services.ai_providers import FallbackChatService
 from apps.common.services.gemini import GeminiService, GeminiMessage
 from apps.common.services.prediction import PredictionService
 from apps.predictor.models import PredictionRecord
@@ -81,6 +88,9 @@ CHATBOT_ERRORS = {
 }
 
 
+# --------------------------------------------------------------------------- #
+# Helpers
+# --------------------------------------------------------------------------- #
 def _preferred_language(request, data=None):
     requested = data.get("language") if isinstance(data, dict) else None
     if requested in ("bn", "en"):
@@ -266,14 +276,14 @@ def _has_staff_chat_access(user):
     )
 
 
-def _anon_faq_response(faq_id, language, *, authed_scope="public"):
-    """Build the JSON response for a successful anonymous FAQ answer."""
+def _faq_response(faq_id, language, *, authed_scope="public", authed=False):
+    """Build the JSON response for a successful FAQ answer (any user)."""
     answer = get_faq_answer(faq_id, language=language)
     return _json_response({
         "reply": answer or CHATBOT_ERRORS[language]["unavailable"],
-        "offline": True,  # anonymous mode is always offline by design
+        "offline": True,  # FAQ answers are always canned/offline by design
         "scope": authed_scope,
-        "authed": False,
+        "authed": authed,
         "faq_id": faq_id,
     })
 
@@ -294,17 +304,32 @@ def _anon_guidance_response(language):
     })
 
 
+# --------------------------------------------------------------------------- #
+# Main chat endpoint
+# --------------------------------------------------------------------------- #
 @require_POST
 @ratelimit(key="ip", rate=settings.CHATBOT_RATE_LIMIT, block=True)
 def message_view(request):
     """Accept a chatbot message and return a safe reply.
 
+    Access contract:
+        * Anonymous users: 7 FAQs only — never an AI provider call.
+        * Authenticated users: full multi-provider AI cascade for free-text
+          questions, OR a FAQ answer if they clicked a FAQ button.
+
     CSRF is enforced by CsrfViewMiddleware (the frontend sends X-CSRFToken
-    on every POST). Removing the previous @csrf_exempt closes a cross-origin
-    abuse vector that could have driven paid Gemini API calls.
+    on every POST).
+
+    BACKWARD COMPATIBILITY NOTE:
+    This view calls ``GeminiService.chat`` (the legacy entry point). In
+    production, ``GeminiService.chat`` delegates internally to
+    ``FallbackChatService.chat`` which performs the Gemini -> Groq ->
+    OpenRouter cascade. Existing tests that patch
+    ``apps.chatbot.views.GeminiService.chat`` continue to work because
+    the patch replaces the wrapper and bypasses the cascade entirely.
+    The winning provider is communicated back to this view via
+    ``GeminiService.get_last_fallback_result()`` (thread-local).
     """
-    # Reject clearly malformed JSON bodies early to keep the rate-limit
-    # counter clean for legitimate users.
     data = None
     try:
         data = json.loads(request.body.decode("utf-8"))
@@ -319,28 +344,44 @@ def message_view(request):
 
     authenticated = request.user.is_authenticated
 
-    # ---------- Anonymous path: FAQ-only, NO Gemini call ----------
+    # ---------- FAQ button click path: available to ALL users ----------
+    # When any user (anonymous or authenticated) clicks a FAQ quick-reply
+    # button, the frontend sends ``faq_id`` directly. We return the canned
+    # FAQ answer without calling any AI provider.
+    raw_faq_id = data.get("faq_id")
+    if isinstance(raw_faq_id, str) and raw_faq_id:
+        faq_id = raw_faq_id.strip()[:32]
+        if faq_id in {item["id"] for item in FAQS}:
+            if authenticated:
+                scope = "staff" if _has_staff_chat_access(request.user) else "private"
+                return _faq_response(faq_id, language, authed_scope=scope, authed=True)
+            return _faq_response(faq_id, language)
+        # Unknown faq_id — surface the FAQ list so the UI can re-render.
+        if authenticated:
+            return _json_response({
+                "reply": CHATBOT_ERRORS[language]["anon_guidance"],
+                "offline": not FallbackChatService.is_any_configured(),
+                "scope": "staff" if _has_staff_chat_access(request.user) else "private",
+                "authed": True,
+                "faq_id": "",
+                "faqs": list_faqs(language),
+            })
+        return _anon_guidance_response(language)
+
+    # Free-text message path.
+    raw_text = data.get("message")
+    text = raw_text.strip() if isinstance(raw_text, str) else ""
+    if not text:
+        return _json_response({"reply": CHATBOT_ERRORS[language]["empty"]}, status=400)
+    if len(text) > 600:
+        return _json_response({"reply": CHATBOT_ERRORS[language]["long"]}, status=400)
+
+    # ---------- Anonymous free-text path: FAQ-only, NO AI call ----------
     if not authenticated:
-        # A FAQ button click sends ``faq_id`` directly.
-        raw_faq_id = data.get("faq_id")
-        if isinstance(raw_faq_id, str) and raw_faq_id:
-            faq_id = raw_faq_id.strip()[:32]
-            if faq_id in {item["id"] for item in FAQS}:
-                return _anon_faq_response(faq_id, language)
-            # Unknown faq_id — fall through to guidance (still no Gemini).
-            return _anon_guidance_response(language)
-
-        # Otherwise inspect the free-text message.
-        raw_text = data.get("message")
-        text = raw_text.strip() if isinstance(raw_text, str) else ""
-        if not text:
-            return _json_response({"reply": CHATBOT_ERRORS[language]["empty"]}, status=400)
-        if len(text) > 600:
-            return _json_response({"reply": CHATBOT_ERRORS[language]["long"]}, status=400)
-
+        # Try to match the typed question to one of the 7 FAQs.
         matched_faq_id = find_faq_id_by_text(text, language=language)
         if matched_faq_id:
-            return _anon_faq_response(matched_faq_id, language)
+            return _faq_response(matched_faq_id, language)
 
         # Personal-data questions are gently redirected to sign in.
         if _is_personal_data_request(text) or _is_individual_record_request(text):
@@ -352,28 +393,20 @@ def message_view(request):
                 "faq_id": "",
             })
 
-        # Anything else: explain the FAQ-only limit. Still NO Gemini call.
+        # Anything else: explain the FAQ-only limit. Still NO AI call.
         return _anon_guidance_response(language)
 
-    # ---------- Authenticated path: full Gemini-powered chatbot ----------
-    raw_text = data.get("message")
-    text = raw_text.strip() if isinstance(raw_text, str) else ""
-    if not text:
-        return _json_response({"reply": CHATBOT_ERRORS[language]["empty"]}, status=400)
-    if len(text) > 600:
-        return _json_response({"reply": CHATBOT_ERRORS[language]["long"]}, status=400)
-
-    # Conversation history is untrusted browser input. Account data and staff
-    # metrics are always reconstructed from the authenticated request below.
+    # ---------- Authenticated free-text path: multi-provider AI cascade ----------
     history = _build_history(data.get("history"))
-
     staff_scope = _has_staff_chat_access(request.user)
+
     if staff_scope and _is_staff_private_data_request(text):
         return _json_response({
             "reply": CHATBOT_ERRORS[language]["staff_private"],
-            "offline": not GeminiService.is_configured(),
+            "offline": not FallbackChatService.is_any_configured(),
             "scope": "staff",
             "authed": True,
+            "provider": "",
         })
     if staff_scope:
         context = _staff_dashboard_context() if _is_staff_aggregate_request(text) else None
@@ -381,6 +414,10 @@ def message_view(request):
         context = _account_dashboard_context(request.user)
     else:
         context = None
+
+    # Clear any stale thread-local result from a previous request so we
+    # never report the wrong provider.
+    GeminiService.clear_last_fallback_result()
 
     try:
         chat_kwargs = {
@@ -391,17 +428,17 @@ def message_view(request):
             "is_authenticated": True,
         }
         # Only send the added staff flag for staff requests. This keeps the
-        # public/user call compatible with an already-running worker that may
-        # still have the previous chat-service signature loaded.
+        # call compatible with workers that may still have the previous
+        # chat-service signature loaded.
         if staff_scope:
             chat_kwargs["is_staff"] = True
-        reply = GeminiService.chat(
-            **chat_kwargs,
-        )
+        # GeminiService.chat delegates to FallbackChatService.chat in
+        # production (the cascade). The user kwarg is optional and only
+        # used for usage logging + conversation persistence.
+        chat_kwargs["user"] = request.user
+        reply = GeminiService.chat(**chat_kwargs)
     except TypeError as e:
         if staff_scope and "unexpected keyword argument 'is_staff'" in str(e):
-            # Older worker compatibility: its context still contains only
-            # aggregate counts, never usernames or individual records.
             chat_kwargs.pop("is_staff", None)
             reply = GeminiService.chat(**chat_kwargs)
         else:
@@ -411,9 +448,107 @@ def message_view(request):
         logger.warning("GeminiService error: %s", e)
         reply = CHATBOT_ERRORS[language]["unavailable"]
 
+    # Read back which provider actually answered (thread-local).
+    last_result = GeminiService.get_last_fallback_result()
+    provider = last_result.provider if last_result is not None else ""
+
     return _json_response({
         "reply": reply,
-        "offline": not GeminiService.is_configured(),
+        "offline": not FallbackChatService.is_any_configured(),
         "scope": "staff" if staff_scope else "private",
         "authed": True,
+        "provider": provider,
     })
+
+
+# --------------------------------------------------------------------------- #
+# Server-side conversation history (login required)
+# --------------------------------------------------------------------------- #
+@require_GET
+@login_required
+def history_view(request):
+    """Return the authenticated user's persisted conversation turns."""
+    try:
+        conversation = ChatConversation.objects.get(user=request.user)
+    except ChatConversation.DoesNotExist:
+        return _json_response({"messages": [], "truncated": False})
+    keep = int(getattr(settings, "CHATBOT_HISTORY_KEEP", 40))
+    qs = conversation.messages.order_by("created_at", "id")
+    messages = list(qs.values("role", "content", "provider", "model", "created_at"))
+    truncated = len(messages) > keep
+    for row in messages:
+        row["created_at"] = row["created_at"].isoformat()
+    return _json_response({
+        "messages": messages[-keep:],
+        "truncated": truncated,
+    })
+
+
+@require_POST
+@login_required
+def clear_view(request):
+    """Clear the authenticated user's persisted conversation."""
+    try:
+        conversation = ChatConversation.objects.get(user=request.user)
+        conversation.messages.all().delete()
+        conversation.save(update_fields=["updated_at"])
+    except ChatConversation.DoesNotExist:
+        pass
+    return _json_response({"cleared": True})
+
+
+# --------------------------------------------------------------------------- #
+# Provider health + usage views
+# --------------------------------------------------------------------------- #
+@require_GET
+@login_required
+def providers_view(request):
+    """Return provider configuration and cooldown state.
+
+    Available to any authenticated user; only the ``order`` and
+    ``configured`` flags are exposed — no API keys.
+    """
+    providers = FallbackChatService.describe_providers()
+    return _json_response({
+        "order": [p["name"] for p in providers],
+        "providers": providers,
+        "any_configured": FallbackChatService.is_any_configured(),
+    })
+
+
+@require_GET
+@login_required
+def usage_view(request):
+    """Return recent ChatUsageLog rows.
+
+    Restricted to staff users (Django staff OR users with the medical
+    queue permission). Non-staff get a 403.
+    """
+    if not _has_staff_chat_access(request.user):
+        return _json_response(
+            {"detail": "Staff access required."}, status=403,
+        )
+    try:
+        limit = max(1, min(200, int(request.GET.get("limit", "50"))))
+    except ValueError:
+        limit = 50
+    qs = ChatUsageLog.objects.select_related("user").order_by("-created_at")[:limit]
+    rows = list(qs.values(
+        "id", "provider", "model", "success", "error_code",
+        "error_message", "latency_ms", "prompt_tokens",
+        "completion_tokens", "created_at",
+    ))
+    for row in rows:
+        row["created_at"] = row["created_at"].isoformat()
+    # Per-provider success-rate summary over the last 100 attempts.
+    summary = {}
+    for provider in getattr(settings, "CHATBOT_PROVIDER_ORDER", []):
+        recent = ChatUsageLog.objects.filter(provider=provider).order_by("-created_at")[:100]
+        total = recent.count()
+        ok = recent.filter(success=True).count()
+        summary[provider] = {
+            "recent_attempts": total,
+            "recent_successes": ok,
+            "success_rate": round(ok / total, 3) if total else None,
+        }
+    return _json_response({"recent": rows, "summary": summary})

@@ -1,14 +1,15 @@
 """
-GeminiService: server-side wrapper around the Google Gemini API.
+GeminiService: server-side wrapper around the multi-provider AI fallback
+cascade (Gemini -> Groq -> OpenRouter).
 
 SECURITY CONTRACT:
-- The API key is read from settings and NEVER exposed to the frontend.
-- Frontend never calls Google directly; it calls our Django endpoint, which
-  forwards the message server-side.
-- We NEVER send the user's uploaded image to Gemini. Only text conversation.
-- We enforce a per-user rate limit (in the view, via django_ratelimit).
-- We gracefully degrade to canned educational responses if the key is missing
-  or the API fails.
+- API keys are read from settings (env-driven) and NEVER exposed to the
+  frontend. The frontend never calls any provider directly; it calls our
+  Django endpoint which forwards server-side.
+- We NEVER send the user's uploaded image to any provider. Only text.
+- Per-user rate limit is enforced in the view via django_ratelimit.
+- We gracefully degrade to canned educational responses when no provider
+  is configured or every provider fails.
 
 SAFETY CONTRACT (system prompt):
 - Never claim to diagnose cancer.
@@ -16,11 +17,23 @@ SAFETY CONTRACT (system prompt):
 - Never recommend prescription treatment or medication.
 - Encourage prompt professional evaluation for concerning or changing lesions.
 - Treat model results as unverified information, not medical ground truth.
+
+BACKWARD COMPATIBILITY:
+- ``GeminiService.chat`` keeps the same signature and return type (string).
+  Existing tests that patch ``apps.chatbot.views.GeminiService.chat``
+  continue to work because the patch replaces this method and bypasses
+  the cascade entirely.
+- In production (not patched), ``GeminiService.chat`` delegates to
+  ``FallbackChatService.chat`` which performs the cascade. The winning
+  provider is exposed via ``GeminiService.get_last_fallback_result()``
+  (thread-local) so the chatbot view can include the provider name in
+  the response payload.
 """
 from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from dataclasses import dataclass
 from typing import List, Optional
@@ -28,6 +41,12 @@ from typing import List, Optional
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+# Thread-local storage for the most recent FallbackResult produced by a
+# ``GeminiService.chat`` call. Used by the chatbot view to read back which
+# provider answered without changing the chat() return type (string).
+_local = threading.local()
 
 
 class GeminiError(Exception):
@@ -247,9 +266,16 @@ class GeminiService:
         language: str = "en",
         is_authenticated: bool = False,
         is_staff: bool = False,
+        user=None,
     ) -> str:
         """
         Send a single user turn and return the model's text reply.
+
+        This is the backward-compatible entry point. In production it
+        delegates to ``FallbackChatService.chat`` which performs the
+        multi-provider cascade (Gemini -> Groq -> OpenRouter) with
+        cooldowns and usage logging. Tests that patch this method
+        bypass the cascade entirely.
 
         Args:
             history: prior conversation messages (user/model alternating).
@@ -259,128 +285,60 @@ class GeminiService:
             language: selected UI language ('en' or 'bn').
             is_authenticated: account scope, derived from the server request.
             is_staff: aggregate-only staff scope, derived from server permissions.
+            user: the Django user object (optional). Used for usage logging
+                and server-side conversation persistence. Anonymous callers
+                pass ``None``.
+
+        Returns:
+            The reply text (string). The winning provider is exposed via
+            ``cls.get_last_fallback_result()`` so the caller can read which
+            provider answered.
         """
         language = "bn" if language == "bn" else "en"
+        # Clear any stale thread-local result from a previous request.
+        cls.clear_last_fallback_result()
+
+        # Quick canned response for project-attribution questions, never
+        # sent to any AI provider.
         if cls._asks_about_project_authorship(user_message):
             return PROJECT_ATTRIBUTION_RESPONSES[language]
 
-        client = cls._ensure_client()
-        if client is None:
-            # Offline canned mode
-            if is_staff and context and cls._asks_about_staff_dashboard(user_message):
-                return cls._staff_canned_reply(context, language=language)
-            if is_authenticated and context and cls._asks_about_dashboard(user_message):
-                return cls._dashboard_canned_reply(context, language=language)
-            return cls._canned_reply(user_message, language=language)
+        # Delegate to the multi-provider cascade.
+        from apps.common.services.ai_providers import (
+            ChatMessage as ProviderChatMessage,
+            FallbackChatService,
+        )
+        provider_history = [
+            ProviderChatMessage(role=m.role, content=m.content) for m in history
+        ]
+        result = FallbackChatService.chat(
+            history=provider_history,
+            user_message=user_message,
+            context=context,
+            language=language,
+            is_authenticated=is_authenticated,
+            is_staff=is_staff,
+            user=user,
+        )
+        _local.last_fallback_result = result
+        return result.text
 
-        # Build the system instruction + the user-visible prompt.
-        if is_staff:
-            system = GEMINI_STAFF_SYSTEM_PROMPT
-        elif is_authenticated:
-            system = GEMINI_SYSTEM_PROMPT + """
+    @classmethod
+    def get_last_fallback_result(cls):
+        """Return the FallbackResult from the most recent ``chat`` call.
 
-Signed-in user access scope:
-- The context below contains only this signed-in user's own dashboard summary
-  and recent history. You may answer questions about those records.
-- Never claim access to another person's information, profile, or history.
-"""
-        else:
-            system = GEMINI_PUBLIC_SYSTEM_PROMPT
-        if language == "bn":
-            system += (
-                "\n\nThe user selected Bengali for the interface. Always answer in "
-                "clear, natural Bengali, even if the user's message is in another "
-                "language. Keep medical class codes such as mel, nv, and bcc unchanged."
-            )
-        if context:
-            if is_staff:
-                context_header = (
-                    "\n\nAnonymized, system-wide aggregate statistics generated by "
-                    "the server. No individual-level data is available. Use these "
-                    "totals only for aggregate questions; do not infer identities "
-                    "or individual outcomes:\n"
-                )
-            else:
-                context_header = (
-                    "\n\nPrivate dashboard context generated by the server for this "
-                    "authenticated user only. It contains only their own aggregate "
-                    "counts and recent history, not images, profile details, or "
-                    "another user's data. Use it only for this user's questions; "
-                    "do not infer a diagnosis or clinical meaning:\n"
-                )
-            system += context_header + json.dumps(
-                context, ensure_ascii=False, separators=(",", ":")
-            )
+        Returns ``None`` when ``chat`` was patched (test mode) or when the
+        attribution short-circuit fired (no provider was called).
+        Thread-local so concurrent requests in the same process do not
+        overwrite each other's result.
+        """
+        return getattr(_local, "last_fallback_result", None)
 
-        # Build the contents list from history + new message.
-        contents = []
-        for m in history:
-            role = "user" if m.role == "user" else "model"
-            contents.append({"role": role, "parts": [{"text": m.content}]})
-        contents.append({"role": "user", "parts": [{"text": user_message}]})
-
-        try:
-            from google.genai import types
-
-            config = types.GenerateContentConfig(
-                system_instruction=system,
-                temperature=0.4,
-                max_output_tokens=1200,
-            )
-            for attempt in range(2):
-                try:
-                    response = client.models.generate_content(
-                        model=cls._model,
-                        contents=contents,
-                        config=config,
-                    )
-                    break
-                except Exception as e:
-                    if attempt == 0 and _is_transient_gemini_error(e):
-                        logger.info("Temporary Gemini API failure; retrying once.")
-                        time.sleep(0.75)
-                        continue
-                    raise
-
-            if _hit_output_token_limit(response):
-                logger.warning(
-                    "Gemini reply reached its output token limit; retrying once "
-                    "with a larger response budget."
-                )
-                retry_config = types.GenerateContentConfig(
-                    system_instruction=system,
-                    temperature=0.4,
-                    max_output_tokens=2400,
-                )
-                response = client.models.generate_content(
-                    model=cls._model,
-                    contents=contents,
-                    config=retry_config,
-                )
-                if _hit_output_token_limit(response):
-                    logger.warning(
-                        "Gemini reply was still incomplete after the larger-budget retry."
-                    )
-                    return GEMINI_INCOMPLETE_RESPONSES[language]
-
-            text = getattr(response, "text", None) or ""
-            if not text:
-                # Some response objects expose candidates
-                try:
-                    parts = response.candidates[0].content.parts
-                    text = " ".join(getattr(p, "text", "") or "" for p in parts)
-                except Exception:
-                    text = ""
-            if not text:
-                return cls._service_failure_reply(
-                    user_message, context, language, is_authenticated, is_staff
-                )
-            return text.strip()
-        except Exception as e:
-            logger.warning("Gemini call failed: %s", e)
-            return cls._service_failure_reply(
-                user_message, context, language, is_authenticated, is_staff
-            )
+    @classmethod
+    def clear_last_fallback_result(cls) -> None:
+        """Reset the thread-local last-result slot."""
+        if hasattr(_local, "last_fallback_result"):
+            del _local.last_fallback_result
 
     @classmethod
     def _service_failure_reply(

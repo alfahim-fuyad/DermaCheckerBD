@@ -307,77 +307,157 @@ class GeminiServiceFailureTests(TestCase):
         error.status_code = 503
         return error
 
-    def test_retries_a_transient_503_once(self):
-        client = Mock()
-        client.models.generate_content.side_effect = [
-            self.overloaded_error(),
-            SimpleNamespace(text="Recovered answer"),
-        ]
+    def test_503_on_gemini_cascades_to_groq(self):
+        """A 503 from Gemini should cascade to the next configured provider.
+
+        The multi-provider fallback system intentionally does NOT retry
+        within Gemini on a 5xx error — it sets a cooldown and falls
+        through to the next provider. This test verifies that the
+        cascade hands the turn to Groq when Gemini returns a 503.
+        """
+        from apps.common.services.ai_providers import (
+            CooldownTracker, GeminiProvider, GroqProvider, OpenRouterProvider,
+            ProviderResult, ProviderServerError,
+        )
+        from apps.common.services.gemini import GeminiMessage
+
+        CooldownTracker.clear()
 
         with (
-            patch.object(GeminiService, "_ensure_client", return_value=client),
-            patch("apps.common.services.gemini.time.sleep") as sleep,
+            patch.object(GeminiProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(GroqProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(OpenRouterProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(
+                GeminiProvider, "chat",
+                classmethod(lambda cls, **kw: (_ for _ in ()).throw(
+                    ProviderServerError("503 from Gemini", status_code=503)
+                )),
+            ),
+            patch.object(
+                GroqProvider, "chat",
+                classmethod(lambda cls, **kw: ProviderResult(
+                    text="Recovered from Groq",
+                    provider="groq",
+                    model="llama-3.3-70b-versatile",
+                    latency_ms=80,
+                )),
+            ),
         ):
             reply = GeminiService.chat(
                 history=[],
                 user_message="What public features does this app offer?",
             )
 
-        self.assertEqual(reply, "Recovered answer")
-        self.assertEqual(client.models.generate_content.call_count, 2)
-        sleep.assert_called_once_with(0.75)
+        self.assertEqual(reply, "Recovered from Groq")
+        last = GeminiService.get_last_fallback_result()
+        self.assertIsNotNone(last)
+        self.assertEqual(last.provider, "groq")
+        # Gemini should now be on cooldown after the 503.
+        self.assertTrue(CooldownTracker.is_cooled_down("gemini"))
+        CooldownTracker.clear()
 
-    def test_retries_output_token_limited_reply_with_larger_budget(self):
-        client = Mock()
-        client.models.generate_content.side_effect = [
-            SimpleNamespace(
-                text="Partial reply",
-                candidates=[SimpleNamespace(finish_reason="MAX_TOKENS")],
-            ),
-            SimpleNamespace(
-                text="Complete reply",
-                candidates=[SimpleNamespace(finish_reason="STOP")],
-            ),
-        ]
+    def test_cascade_falls_through_to_openrouter(self):
+        """When Gemini AND Groq both fail, the cascade tries OpenRouter.
 
-        with patch.object(GeminiService, "_ensure_client", return_value=client):
+        This replaces the old in-Gemini MAX_TOKENS retry: instead of
+        retrying the same provider with a larger budget, the cascade
+        tries the next provider, which serves a complete reply from a
+        different model.
+        """
+        from apps.common.services.ai_providers import (
+            CooldownTracker, GeminiProvider, GroqProvider, OpenRouterProvider,
+            ProviderResult, ProviderServerError,
+        )
+
+        CooldownTracker.clear()
+
+        with (
+            patch.object(GeminiProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(GroqProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(OpenRouterProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(
+                GeminiProvider, "chat",
+                classmethod(lambda cls, **kw: (_ for _ in ()).throw(
+                    ProviderServerError("503 from Gemini", status_code=503)
+                )),
+            ),
+            patch.object(
+                GroqProvider, "chat",
+                classmethod(lambda cls, **kw: (_ for _ in ()).throw(
+                    ProviderServerError("503 from Groq", status_code=503)
+                )),
+            ),
+            patch.object(
+                OpenRouterProvider, "chat",
+                classmethod(lambda cls, **kw: ProviderResult(
+                    text="Complete reply from OpenRouter",
+                    provider="openrouter",
+                    model="meta-llama/llama-3.1-8b-instruct:free",
+                    latency_ms=120,
+                )),
+            ),
+        ):
             reply = GeminiService.chat(
                 history=[],
                 user_message="Explain the app's seven model classes.",
             )
 
-        self.assertEqual(reply, "Complete reply")
-        self.assertEqual(client.models.generate_content.call_count, 2)
-        configs = [
-            call.kwargs["config"]
-            for call in client.models.generate_content.call_args_list
-        ]
-        self.assertEqual(configs[0].max_output_tokens, 1200)
-        self.assertEqual(configs[1].max_output_tokens, 2400)
+        self.assertEqual(reply, "Complete reply from OpenRouter")
+        last = GeminiService.get_last_fallback_result()
+        self.assertEqual(last.provider, "openrouter")
+        CooldownTracker.clear()
 
-    def test_does_not_return_partial_text_if_larger_budget_is_still_exhausted(self):
-        client = Mock()
-        client.models.generate_content.side_effect = [
-            SimpleNamespace(
-                text="অর্ধেক উত্তর",
-                candidates=[SimpleNamespace(finish_reason="MAX_TOKENS")],
-            ),
-            SimpleNamespace(
-                text="আরও অর্ধেক উত্তর",
-                candidates=[SimpleNamespace(finish_reason="MAX_TOKENS")],
-            ),
-        ]
+    def test_cascade_returns_canned_reply_when_all_providers_fail(self):
+        """When every provider fails, the cascade returns a localized canned reply.
 
-        with patch.object(GeminiService, "_ensure_client", return_value=client):
+        This replaces the old in-Gemini MAX_TOKENS double-retry: instead
+        of retrying Gemini twice with a larger budget and then returning
+        an "incomplete" message, the cascade tries every provider once
+        and then returns the localized "assistant temporarily unavailable"
+        canned reply.
+        """
+        from apps.common.services.ai_providers import (
+            CooldownTracker, GeminiProvider, GroqProvider, OpenRouterProvider,
+            ProviderServerError,
+        )
+
+        CooldownTracker.clear()
+
+        with (
+            patch.object(GeminiProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(GroqProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(OpenRouterProvider, "is_configured", classmethod(lambda cls: True)),
+            patch.object(
+                GeminiProvider, "chat",
+                classmethod(lambda cls, **kw: (_ for _ in ()).throw(
+                    ProviderServerError("503", status_code=503)
+                )),
+            ),
+            patch.object(
+                GroqProvider, "chat",
+                classmethod(lambda cls, **kw: (_ for _ in ()).throw(
+                    ProviderServerError("503", status_code=503)
+                )),
+            ),
+            patch.object(
+                OpenRouterProvider, "chat",
+                classmethod(lambda cls, **kw: (_ for _ in ()).throw(
+                    ProviderServerError("503", status_code=503)
+                )),
+            ),
+        ):
             reply = GeminiService.chat(
                 history=[],
                 user_message="ব্যাখ্যা করুন",
                 language="bn",
             )
 
-        self.assertIn("উত্তরটি সম্পূর্ণ তৈরি করা যায়নি", reply)
-        self.assertNotIn("অর্ধেক উত্তর", reply)
-        self.assertEqual(client.models.generate_content.call_count, 2)
+        # Bengali "assistant temporarily unavailable" canned reply is
+        # returned — never a partial provider reply.
+        self.assertIn("সহকারীটি সাময়িকভাবে অনুপলব্ধ", reply)
+        last = GeminiService.get_last_fallback_result()
+        self.assertEqual(last.provider, "canned")
+        CooldownTracker.clear()
 
     def test_dashboard_questions_keep_personalized_fallback_during_503(self):
         client = Mock()

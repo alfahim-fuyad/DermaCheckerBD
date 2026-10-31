@@ -342,6 +342,44 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 CHATBOT_RATE_LIMIT = os.environ.get("CHATBOT_RATE_LIMIT", "10/m")  # 10 msgs/min/user
 CHATBOT_SESSION_TTL = int(os.environ.get("CHATBOT_SESSION_TTL", "1800"))  # 30 min
 
+# ---- Multi-Provider AI Fallback System ----
+# Providers are tried in the order listed below. The first configured
+# and not-on-cooldown provider that returns a successful reply wins.
+# On a retryable failure (rate limit, quota, timeout, server error) the
+# provider is cooled down for CHATBOT_PROVIDER_COOLDOWN_SECONDS and the
+# next provider in the list is tried.
+CHATBOT_PROVIDER_ORDER = [
+    slug.strip() for slug in os.environ.get(
+        "CHATBOT_PROVIDER_ORDER", "gemini,groq,openrouter"
+    ).split(",") if slug.strip()
+] or ["gemini", "groq", "openrouter"]
+# Cooldown TTL applied to a provider after a retryable failure.
+CHATBOT_PROVIDER_COOLDOWN_SECONDS = float(
+    os.environ.get("CHATBOT_PROVIDER_COOLDOWN_SECONDS", "60")
+)
+
+# Groq (secondary) — OpenAI-compatible Chat Completions API.
+# Get a key from https://console.groq.com/keys
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+GROQ_TIMEOUT = float(os.environ.get("GROQ_TIMEOUT", "30"))
+
+# OpenRouter (tertiary) — OpenAI-compatible router over many models.
+# Get a key from https://openrouter.ai/keys
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_MODEL = os.environ.get(
+    "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"
+).strip()
+OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "45"))
+# Optional identification headers recommended by OpenRouter.
+# These are NOT secrets — they help OpenRouter rate-limit your account
+# correctly and label your requests in their dashboard.
+OPENROUTER_SITE_URL = os.environ.get("OPENROUTER_SITE_URL", "").strip()
+OPENROUTER_SITE_NAME = os.environ.get("OPENROUTER_SITE_NAME", "DermaCheckerBD").strip()
+
+# Cap on how many turns we persist server-side per user conversation.
+CHATBOT_HISTORY_KEEP = int(os.environ.get("CHATBOT_HISTORY_KEEP", "40"))
+
 # Image quality thresholds (Smart Photo Guide)
 IMG_MIN_DIMENSION = int(os.environ.get("IMG_MIN_DIMENSION", "200"))
 IMG_MAX_DIMENSION = int(os.environ.get("IMG_MAX_DIMENSION", "4096"))
