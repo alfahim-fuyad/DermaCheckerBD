@@ -69,6 +69,38 @@ class Command(BaseCommand):
         self.stdout.write(f"OPENROUTER_TIMEOUT = {getattr(settings, 'OPENROUTER_TIMEOUT', 12)}s")
         self.stdout.write("")
 
+        # Check for known-deprecated model names and warn the operator.
+        deprecated = {
+            "llama-3.3-70b-versatile": (
+                "DEPRECATED on Groq free/developer tier as of August 16, 2026. "
+                "Use 'openai/gpt-oss-120b' instead. "
+                "See: https://console.groq.com/docs/models"
+            ),
+            "meta-llama/llama-3.1-8b-instruct:free": (
+                "RETIRED by OpenRouter in 2026. Use 'openrouter/free' instead. "
+                "See: https://openrouter.ai/models"
+            ),
+            "deepseek/deepseek-r1:free": (
+                "RETIRED by OpenRouter in 2026. Use 'openrouter/free' instead."
+            ),
+            "meta-llama/llama-3.3-70b-instruct:free": (
+                "RETIRED by OpenRouter in 2026. Use 'openrouter/free' instead."
+            ),
+        }
+        groq_model = getattr(settings, "GROQ_MODEL", "").strip()
+        or_model = getattr(settings, "OPENROUTER_MODEL", "").strip()
+        if groq_model in deprecated or or_model in deprecated:
+            self.stdout.write(self.style.ERROR("=== DEPRECATED MODEL WARNING ==="))
+            for model_name in (groq_model, or_model):
+                if model_name in deprecated:
+                    self.stdout.write(self.style.ERROR(
+                        f"  {model_name}: {deprecated[model_name]}"
+                    ))
+            self.stdout.write(
+                "Set GROQ_MODEL / OPENROUTER_MODEL to a currently-valid model "
+                "in your Render environment variables, then redeploy.\n"
+            )
+
         # Check which API keys are set (without revealing them)
         self.stdout.write("=== API key status (showing only first/last 4 chars) ===")
         for slug, attr in [
@@ -154,10 +186,14 @@ class Command(BaseCommand):
             self.stdout.write("")
             self.stdout.write(self.style.WARNING(
                 "FAILures detected. Common causes:\n"
-                "  1. Wrong model name — check GEMINI_MODEL / GROQ_MODEL / OPENROUTER_MODEL\n"
-                "     Valid Gemini models: gemini-2.0-flash, gemini-1.5-flash\n"
-                "     Valid Groq models: llama-3.3-70b-versatile, llama-3.1-8b-instant\n"
-                "     Valid OpenRouter models: see https://openrouter.ai/models\n"
+                "  1. DEPRECATED model name — the most common cause in late 2026:\n"
+                "     - GROQ: 'llama-3.3-70b-versatile' was deprecated Aug 2026.\n"
+                "       Use 'openai/gpt-oss-120b' instead.\n"
+                "     - OPENROUTER: 'meta-llama/llama-3.1-8b-instruct:free' was retired.\n"
+                "       Use 'openrouter/free' instead.\n"
+                "     Verify at:\n"
+                "       https://console.groq.com/docs/models\n"
+                "       https://openrouter.ai/models\n"
                 "  2. Invalid API key — check GEMINI_API_KEY / GROQ_API_KEY / OPENROUTER_API_KEY\n"
                 "  3. Quota exhausted — check your provider dashboard\n"
                 "  4. Network blocked — Render might be blocking outbound HTTPS\n"

@@ -567,6 +567,39 @@ Worst case: every provider times out → user waits ~15 s (the cascade
 deadline), then gets a localized canned reply. Best case: Gemini
 answers in ~2 s. Either way the chatbot feels responsive.
 
+### 3b. Model name deprecations (late 2026)
+
+AI providers retire model names frequently. As of November 2026, the
+following models that this project used to default to are **deprecated**
+and will return 4xx errors:
+
+| Provider | Deprecated model | Replacement |
+| --- | --- | --- |
+| Groq | `llama-3.3-70b-versatile` | `openai/gpt-oss-120b` (free tier retired Aug 16, 2026) |
+| OpenRouter | `meta-llama/llama-3.1-8b-instruct:free` | `openrouter/free` (auto-router) |
+| OpenRouter | `deepseek/deepseek-r1:free` | `openrouter/free` |
+| OpenRouter | `meta-llama/llama-3.3-70b-instruct:free` | `openrouter/free` |
+
+The defaults in `settings.py` and `.env.example` have been updated to
+the currently-valid replacements. If you previously set
+`GROQ_MODEL=llama-3.3-70b-versatile` or
+`OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free` in your Render
+environment variables, **you must update them**:
+
+```
+GROQ_MODEL=openai/gpt-oss-120b
+OPENROUTER_MODEL=openrouter/free
+```
+
+After updating, run `python manage.py test_chatbot_providers` to verify
+each provider is working. The command also prints a deprecation warning
+if it detects any of the retired model names in your configuration.
+
+Always verify current model names before deploying:
+- Groq: https://console.groq.com/docs/models
+- OpenRouter: https://openrouter.ai/models
+- Gemini: https://ai.google.dev/gemini-api/docs/models
+
 ### 4. Connection pooling (built in)
 
 Groq and OpenRouter share a module-level `requests.Session`, so the

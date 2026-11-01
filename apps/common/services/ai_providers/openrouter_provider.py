@@ -57,8 +57,15 @@ class OpenRouterProvider(BaseAIProvider):
 
     name = "openrouter"
     label = "OpenRouter"
-    default_model = "meta-llama/llama-3.1-8b-instruct:free"
-    timeout = 45.0
+    # Default changed from `meta-llama/llama-3.1-8b-instruct:free` (retired
+    # by OpenRouter in 2026 along with most other `:free` models) to
+    # `openrouter/free`, which auto-routes to any currently-available free
+    # model. This is the most resilient default — OpenRouter swaps in a
+    # different underlying model when one is retired, so the chatbot keeps
+    # working without a code change. See:
+    # https://openrouter.ai/models
+    default_model = "openrouter/free"
+    timeout = 12.0
 
     @classmethod
     def is_configured(cls) -> bool:

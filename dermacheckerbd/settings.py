@@ -374,15 +374,31 @@ CHATBOT_CASCADE_DEADLINE_SECONDS = float(
 # Get a key from https://console.groq.com/keys
 # Timeouts are intentionally tight (8s) so a slow provider never makes
 # the chatbot feel unresponsive; the cascade falls through quickly.
+#
+# NOTE: `llama-3.3-70b-versatile` was deprecated on Groq's free/developer
+# tier as of August 16, 2026. The current valid production models are:
+#   - openai/gpt-oss-120b   (recommended replacement, $0.15/$0.60 per 1M)
+#   - openai/gpt-oss-20b    (smaller, $0.075/$0.30 per 1M)
+#   - llama-3.1-8b-instant  (small + fast, may still be on free tier)
+# Verify at https://console.groq.com/docs/models before deploying.
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b").strip()
 GROQ_TIMEOUT = float(os.environ.get("GROQ_TIMEOUT", "8"))
 
 # OpenRouter (tertiary) — OpenAI-compatible router over many models.
 # Get a key from https://openrouter.ai/keys
+#
+# NOTE: `meta-llama/llama-3.1-8b-instruct:free` and most other `:free`
+# models (DeepSeek R1, Llama 3.3 70B, Llama 4 Scout) were retired by
+# OpenRouter in 2026. The current approach is either:
+#   - Use "openrouter/free" which auto-routes to any available free model
+#     (best for zero-cost deployments; limited to 20 RPM / 50-1000 RPD)
+#   - Use a specific paid model like "deepseek/deepseek-chat-v3-0324"
+#     or "meta-llama/llama-4-scout" (check https://openrouter.ai/models)
+# Verify at https://openrouter.ai/models before deploying.
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_MODEL = os.environ.get(
-    "OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free"
+    "OPENROUTER_MODEL", "openrouter/free"
 ).strip()
 OPENROUTER_TIMEOUT = float(os.environ.get("OPENROUTER_TIMEOUT", "12"))
 # Optional identification headers recommended by OpenRouter.

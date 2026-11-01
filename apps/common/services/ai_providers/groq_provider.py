@@ -65,8 +65,12 @@ class GroqProvider(BaseAIProvider):
 
     name = "groq"
     label = "Groq Cloud"
-    default_model = "llama-3.3-70b-versatile"
-    timeout = 30.0
+    # Default changed from `llama-3.3-70b-versatile` (deprecated on Groq's
+    # free/developer tier as of August 16, 2026) to `openai/gpt-oss-120b`,
+    # the documented replacement. See:
+    # https://console.groq.com/docs/models
+    default_model = "openai/gpt-oss-120b"
+    timeout = 8.0
 
     @classmethod
     def is_configured(cls) -> bool:
