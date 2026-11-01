@@ -65,6 +65,13 @@ class PredictionRecord(models.Model):
     )
     review_date = models.DateField(null=True, blank=True, db_index=True)
 
+    # When True (default), the record appears in the Doctor Panel's
+    # Medical Priority Queue. The "Clear All" action sets this to False
+    # instead of deleting the record — so the patient's prediction
+    # history, image, and PDF report remain intact while the queue is
+    # emptied for the doctor.
+    show_in_queue = models.BooleanField(default=True, db_index=True)
+
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 

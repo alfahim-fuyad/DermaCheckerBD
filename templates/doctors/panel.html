@@ -16,14 +16,38 @@
           <i data-lucide="file-down" style="width:16px;height:16px;"></i>
           Generate Medical Serial Report
         </a>
-        <form method="post" action="{% url 'doctors:clear_all' %}" class="d-inline"
-              onsubmit="return confirm('Are you sure you want to clear all cases?');">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-danger btn-sm">
-            <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
-            Clear All
-          </button>
-        </form>
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#clearAllModal">
+          <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+          Clear All
+        </button>
+      </div>
+    </div>
+
+    <!-- Clear All Confirmation Modal -->
+    <div class="modal fade" id="clearAllModal" tabindex="-1" aria-labelledby="clearAllModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title text-danger" id="clearAllModalLabel">
+              <i data-lucide="alert-triangle" style="width:20px;height:20px;vertical-align:-3px;"></i>
+              Clear All Cases
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-0">Are you sure? All Medical Priority Queue records will be permanently deleted. This action cannot be undone.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <form method="post" action="{% url 'doctors:clear_all' %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+                Yes, Clear All
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
 

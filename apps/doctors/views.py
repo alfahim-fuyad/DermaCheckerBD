@@ -255,7 +255,7 @@ def _priority_for(record):
 def _medical_queue(request):
     queryset = PredictionRecord.objects.select_related(
         "user", "user__patient_profile"
-    ).filter(user__isnull=False)
+    ).filter(user__isnull=False, show_in_queue=True)
     search = (request.GET.get("q") or "").strip()
     selected_priority = request.GET.get("priority", "").lower()
     selected_class = request.GET.get("class", "").lower()
@@ -409,22 +409,20 @@ def delete_record_view(request, reference_id):
 @require_http_methods(["POST"])
 @medical_queue_access_required
 def clear_all_view(request):
-    """Delete every record currently visible in the Medical Priority Queue.
+    """Remove every record from the Medical Priority Queue.
 
-    Only logged-in user predictions appear in the queue (guest predictions
-    with ``user=None`` are excluded by ``_medical_queue`` and are not
-    affected here). Each record's saved image file is deleted before the
-    database row is removed.
+    Records are NOT deleted — ``show_in_queue`` is set to ``False`` so the
+    patient's prediction history, uploaded image, and PDF report remain
+    intact. Only the doctor's queue view is cleared. Guest predictions
+    (``user=None``) are never in the queue and are not affected.
     """
-    records = PredictionRecord.objects.filter(user__isnull=False)
+    records = PredictionRecord.objects.filter(user__isnull=False, show_in_queue=True)
     count = records.count()
-    for record in records:
-        if record.image:
-            record.image.delete(save=False)
-    records.delete()
+    records.update(show_in_queue=False)
     messages.success(
         request,
-        f"Cleared {count} case(s) from the Medical Priority Queue."
+        f"Cleared {count} case(s) from the Medical Priority Queue. "
+        "Patient histories, images, and reports were preserved."
     )
     return redirect("doctors:panel")
 
