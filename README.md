@@ -1,796 +1,734 @@
-# DermaCheckerBD — Skin Cancer Prediction Website (Django)
+# DermaCheckerBD — Skin-Lesion Analysis Prototype (Django)
 
-An experimental, research-support prototype for skin-lesion analysis. Built as
-a university CSE capstone. **Not a medical device. Predictions are unverified
-and may be wrong.**
+An experimental, research-support prototype for skin-lesion analysis.
+Built as a university CSE capstone project at East West University (EWU)
+by AL Fahim Fuad and his team.
 
-> ⚠️ **Medical disclaimer**: This prototype does NOT provide a medical diagnosis.
-> If you are concerned about a skin lesion — especially one that is changing,
-> bleeding, growing, or painful — consult a qualified dermatologist promptly.
-> Do not delay professional evaluation based on this tool's output.
-
----
-
-## What this project is
-
-A Django web application that wraps a skin-lesion classification model with
-practical, transparency-oriented features:
-
-| Feature                       | What it does                                                              |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| **Smart Photo Guide**         | Detects blur, exposure, framing, and skin-plausibility before prediction. |
-| **AI Reliability Check**      | Runs predictions across mild image transforms; reports agreement %.      |
-| **Multi-Image Disagreement**  | Compares predictions across N photos of the same lesion.                  |
-| **Lesion Follow-up Tracker**  | Private per-user lesion records with a timeline + PDF summary.            |
-| **Floating Assistant**        | Role-scoped chatbot. **Anonymous visitors get 7 predefined FAQs only** (no Gemini calls). Signed-in users get the full Gemini-powered assistant with their own dashboard summary. Staff get aggregate-only totals. Never diagnoses. |
-| **Wrong-Input Protection**    | Flags non-skin / corrupt / out-of-range inputs before predicting.        |
-| **Similar Case Explorer**    | Modular stub. Plug in a reference dataset to enable.                      |
-
-The default prediction backend is the supplied fine-tuned HAM10000 ResNet50
-Keras model. A deterministic mock backend remains available for tests and demos;
-the ONNX backend is an optional integration point.
+> **Medical disclaimer**: This prototype does **NOT** provide a medical
+> diagnosis. If you are concerned about a skin lesion — especially one
+> that is changing, bleeding, growing, or painful — consult a qualified
+> dermatologist promptly. Do not delay professional evaluation based on
+> this tool's output.
 
 ---
 
-## Tech stack
+## Table of Contents
 
-- **Backend**: Python 3.12, Django 5.1, Django REST Framework
-- **Frontend**: HTML5, CSS3, Bootstrap 5, vanilla JavaScript, Lucide icons
-- **Database**: SQLite (local) → PostgreSQL via `DATABASE_URL` (production, e.g., Neon)
-- **ML**: TensorFlow/Keras ResNet50, OpenCV, Pillow, NumPy
-- **PDF**: ReportLab
-- **AI assistant**: Google Gemini (`google-genai` SDK) — called server-side only, **only for authenticated users**
-- **Static**: WhiteNoise (compressed, manifest-hashed)
-- **WSGI**: Gunicorn (single worker, Render-compatible)
-- **Deployment**: Render (Render Blueprint in `render.yaml`)
+1. [Project Overview](#project-overview)
+2. [Key Features](#key-features)
+3. [Technology Stack](#technology-stack)
+4. [Project Architecture](#project-architecture)
+5. [Installation & Local Setup](#installation--local-setup)
+6. [Environment Variables](#environment-variables)
+7. [Database Setup & Migrations](#database-setup--migrations)
+8. [AI/ML Model & Prediction Workflow](#aiml-model--prediction-workflow)
+9. [Multi-Provider Chatbot (Gemini → Groq → OpenRouter)](#multi-provider-chatbot-gemini--groq--openrouter)
+10. [API Endpoints](#api-endpoints)
+11. [Management Commands](#management-commands)
+12. [Deployment (Render)](#deployment-render)
+13. [Bengali / English i18n](#bengali--english-i18n)
+14. [Testing](#testing)
+15. [Troubleshooting](#troubleshooting)
+16. [Limitations](#limitations)
 
 ---
 
-## Quick start (local development in VS Code)
+## Project Overview
+
+DermaCheckerBD is a Django 5 web application that wraps a fine-tuned
+ResNet50 skin-lesion classification model (trained on the HAM10000
+dataset) with practical, transparency-oriented features:
+
+- **Image quality assessment** before prediction (blur, exposure, framing,
+  skin-plausibility).
+- **Skin/non-skin validation** gate — rejects non-skin uploads before the
+  lesion classifier runs.
+- **Seven-class prediction** with confidence scores and category labels
+  (benign / malignant / pre-malignant).
+- **Reliability check** — measures how stable the prediction is across
+  mild image transforms (brightness, contrast, rotation).
+- **Multi-image comparison** — upload 2–5 images and compare predictions
+  side by side.
+- **Lesion follow-up tracker** — authenticated users can track lesions
+  over time with photos and notes.
+- **Multi-provider AI chatbot** — Gemini (primary) → Groq (secondary) →
+  OpenRouter (tertiary) cascade with automatic failover, cooldowns, and
+  usage logging.
+- **Bengali + English UI** — full bilingual support with a client-side
+  i18n layer.
+- **Nearby doctors finder** — Geoapify Places API integration for
+  finding dermatologists and hospitals.
+
+The prototype is **not** a medical device. Every prediction is unverified
+and may be wrong.
+
+---
+
+## Key Features
+
+| Feature | Description |
+| --- | --- |
+| Smart Photo Guide | Checks blur, exposure, framing, and skin-plausibility before prediction runs. Optional automatic enhancement. |
+| Skin Image Prediction | Fine-tuned ResNet50 classifies uploads into 7 HAM10000 classes. Skin/non-skin validation gate rejects non-skin images. |
+| Reliability Check | Reports agreement percentage across mild image transforms (brightness, contrast, rotation). High agreement = stable, not necessarily correct. |
+| Multi-Image Comparison | Upload 2–5 images and compare predictions side by side. |
+| Lesion Tracker | Authenticated users track lesions over time with photos, body location, and notes. PDF summary export. |
+| Multi-Provider Chatbot | Gemini → Groq → OpenRouter cascade with cooldowns, usage logging, and conversation persistence. 7 FAQs available to all users; AI replies require login. |
+| Skin Health Library | Bengali + English educational articles for each of the 7 classes plus general skin-health topics. |
+| Warning Signs Checker | Interactive ABCDE-rule questionnaire for self-assessment. |
+| Nearby Doctors | Geoapify Places API search for dermatologists and hospitals by location and radius. |
+| Doctor Panel | Staff-only review queue for predictions with follow-up status tracking. |
+| PDF Reports | Downloadable prediction reports with image, class, confidence, quality, and reliability data. |
+| Bilingual UI | Full Bengali (বাংলা) + English toggle. Server messages are translated client-side via a known-message table. |
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+| --- | --- |
+| Backend | Django 5.2, Python 3.12 |
+| Database | SQLite (local dev), PostgreSQL via Neon (production) |
+| ML / Image | TensorFlow + Keras (ResNet50), Pillow, OpenCV (headless), NumPy |
+| PDF | ReportLab + uharfbuzz (Bengali font support) |
+| AI Chatbot | Google Gemini (google-genai SDK), Groq + OpenRouter (OpenAI-compatible HTTP via `requests`) |
+| Rate Limiting | django-ratelimit (per-IP) |
+| Forms | django-crispy-forms + crispy-bootstrap5 |
+| Static Files | WhiteNoise (compressed manifest in production) |
+| Image Storage | Local filesystem (dev), Cloudinary (production, optional) |
+| Doctors Search | Geoapify Places + Geocoding APIs |
+| Frontend | Vanilla JS + Bootstrap 5, client-side i18n dictionary |
+| Server | Gunicorn (1 worker, 4 threads, `--max-requests 80` recycle) |
+| Deployment | Render (free tier compatible) |
+
+---
+
+## Project Architecture
+
+```
+DermaCheckerBD-bengali-fixed/
+├── manage.py
+├── requirements.txt              # Python dependencies
+├── runtime.txt                   # Python version for Render
+├── Procfile                      # Gunicorn start command
+├── render.yaml                   # Render Blueprint
+├── .env.example                  # Environment variable template
+│
+├── dermacheckerbd/               # Django project package
+│   ├── settings.py               # Environment-driven configuration
+│   ├── urls.py                   # Root URL conf + health check
+│   ├── wsgi.py / asgi.py
+│   └── storage.py                # Media storage backend resolver
+│
+├── apps/                         # Django apps (one per feature area)
+│   ├── core/                     # Home, About, How-it-works, Privacy
+│   ├── accounts/                 # Signup, login, profile, dashboard
+│   ├── predictor/                # Upload, result, history, PDF reports
+│   ├── photo_guide/              # Smart Photo Guide (quality check)
+│   ├── reliability/              # Prediction reliability check + dashboard
+│   ├── multi_image/              # Multi-image comparison
+│   ├── tracker/                  # Lesion follow-up tracker
+│   ├── chatbot/                  # Multi-provider AI chatbot
+│   │   ├── models.py             # ChatConversation, ChatMessage, ChatUsageLog
+│   │   ├── faqs.py               # 7 predefined FAQs (en + bn)
+│   │   ├── views.py              # Message, history, clear, providers, usage, diagnose
+│   │   └── management/commands/  # test_chatbot_providers, clear_chat_cooldowns, keep_chatbot_warm
+│   ├── education/                # Skin health library (7 class articles)
+│   ├── questionnaire/            # ABCDE warning-signs checker
+│   ├── doctors/                  # Nearby doctors finder + doctor panel
+│   ├── similar_cases/            # Similar case explorer (disabled by default)
+│   └── common/                   # Shared services
+│       └── services/
+│           ├── prediction.py     # PredictionService (keras/mock/onnx/api backends)
+│           ├── image_quality.py  # ImageQualityService (blur, exposure, framing, skin ratio)
+│           ├── wrong_input.py    # WrongInputService (corrupt/non-skin detection)
+│           ├── reliability.py    # ReliabilityService (transform stability)
+│           ├── ai_api.py         # FastAPI backend client + NonSkinImageError
+│           ├── gemini.py         # GeminiService (delegates to fallback cascade)
+│           ├── ai_providers/     # Multi-provider cascade package
+│           │   ├── base.py       # BaseAIProvider + exception hierarchy
+│           │   ├── cooldown.py   # CooldownTracker (Django cache)
+│           │   ├── gemini_provider.py
+│           │   ├── groq_provider.py
+│           │   ├── openrouter_provider.py
+│           │   └── fallback.py   # FallbackChatService orchestrator
+│           ├── pdf_report.py     # ReportLab PDF generation
+│           ├── geoapify.py       # Places + Geocoding API client
+│           └── ...
+│
+├── templates/                    # Django templates
+│   ├── base.html
+│   ├── includes/                 # navbar, footer, chatbot widget
+│   ├── core/                     # home, about, how_it_works, privacy
+│   ├── predictor/                # upload, result, history
+│   ├── photo_guide/              # quality_check + partials
+│   ├── reliability/              # check, dashboard
+│   ├── multi_image/              # compare
+│   ├── tracker/                  # index, create, detail, confirm_delete
+│   ├── education/                # index, detail, article
+│   ├── questionnaire/            # questionnaire
+│   ├── doctors/                  # finder, panel, access_denied
+│   ├── registration/             # login, signup, profile, dashboard
+│   └── 404.html / 500.html
+│
+├── static/
+│   ├── css/                      # Modular per-app CSS
+│   ├── js/                       # main.js, chatbot.js, translations.js, etc.
+│   ├── fonts/                    # NotoSansBengali for PDF rendering
+│   └── images/                   # Logo, class icons, scan demos
+│
+├── bengali_translations/         # Markdown source for Bengali education articles
+├── tests/                        # Django test suite
+└── scripts/                      # Dev/utility scripts (smoke tests, mock FastAPI)
+```
+
+---
+
+## Installation & Local Setup
+
+### Prerequisites
+
+- Python 3.12+
+- `pip` and `venv`
+- (Optional) PostgreSQL for production-like local testing
+- (Optional) Google Gemini / Groq / OpenRouter API keys for the chatbot
+
+### Steps
 
 ```bash
-# 1. Clone & cd in
-git clone <your-repo-url> dermacheckerbd
-cd dermacheckerbd
+# 1. Clone and enter the project
+git clone <your-repo-url> DermaCheckerBD
+cd DermaCheckerBD
 
-# 2. Create & activate a virtual environment
+# 2. Create and activate a virtual environment
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate         # Windows
 
 # 3. Install dependencies
-# For the bundled local Keras model:
-pip install -r requirements-ml.txt
-# For an API-only setup, install requirements.txt instead.
+pip install -r requirements.txt
 
-# 4. Configure environment
+# 4. Copy the environment template and fill in values
 cp .env.example .env
-# Windows PowerShell alternative: Copy-Item .env.example .env
-# For local PostgreSQL, uncomment LOCAL_DB_* in .env and enter your local
-# database password there. Leave them commented to use SQLite.
-# Set ML_MODEL_BACKEND=mock for tests / demos that should not load TensorFlow.
+# Edit .env — at minimum set DJANGO_SECRET_KEY and ML_MODEL_BACKEND
 
-# 5. Apply database migrations
+# 5. Run database migrations
 python manage.py migrate
 
-# 6. (Optional) Create an admin user
-python manage.py createsuperuser
+# 6. (Optional) Create a superuser for the admin
+python manage.py ensuresuperuser   # or: python manage.py createsuperuser
 
-# 7. Run the development server
+# 7. Start the development server
 python manage.py runserver
 ```
 
-Open <http://127.0.0.1:8000/> in your browser.
+Visit `http://127.0.0.1:8000/`.
 
----
+### Quick smoke test
 
-## Doctor follow-up queue
+```bash
+# Verify the ML pipeline works end-to-end with the mock backend
+ML_MODEL_BACKEND=mock python manage.py test_chatbot_providers
 
-The doctor panel is available at `/doctors/panel/`. After migrations, an
-administrator can create a Django auth group for doctors and grant it the
-`Can access and manage the medical follow-up queue` permission. Add doctor
-accounts to that group; the panel link then appears for those users. Priority
-groups and review statuses are follow-up workflow aids, not diagnoses.
-
----
-
-## Project layout
-
-```
-dermacheckerbd/              # Django project package (settings, urls, wsgi, asgi)
-apps/                    # Local apps
-  accounts/              # signup, login, profile, dashboard
-  core/                  # home, about, how_it_works, privacy
-  predictor/             # upload, predict, result, history, PDF report
-  photo_guide/           # standalone image-quality checker
-  reliability/           # standalone AI Reliability Check page
-  multi_image/           # multi-image disagreement
-  tracker/               # lesion follow-up tracker
-  chatbot/               # floating assistant endpoint + FAQs
-    views.py             # message_view: anonymous=FAQ-only, auth=full Gemini
-    faqs.py              # 7 predefined multilingual FAQs (no AI calls)
-  similar_cases/         # stubbed similar-case explorer
-  common/                # shared services (no URLs, no models)
-    services/
-      prediction.py      # pluggable PredictionService (keras/mock/onnx)
-      image_quality.py   # Smart Photo Guide checks
-      reliability.py     # reliability check transforms
-      multi_image.py     # multi-image disagreement
-      gemini.py          # Gemini client wrapper + safe-mode fallback
-      pdf_report.py      # ReportLab PDF report builder
-      wrong_input.py    # wrong-input protection
-      similar_cases.py   # modular stub
-templates/               # Django templates (base, includes/, per-app dirs)
-  includes/chatbot.html  # floating chatbot panel + anonymous FAQ quick-reply bar
-static/                  # CSS, JS, images
-  css/
-    main.css             # entry point: ordered @imports of the modular files below
-    predictor-result.css # prediction-result report page (loaded only by predictor/result.html)
-    base/                # shared/global layer
-      variables.css      # :root design tokens (colors, fonts, spacing, radius)
-      reset.css          # box-sizing, html/body, headings, a, focus, skip-link
-      typography.css     # placeholder (text rules kept in reset.css to preserve order)
-      global.css         # navbar, footer, buttons, cards, badges, upload-area,
-                         # result-banner, conf-bar, stat-block, qcheck, misc utility,
-                         # privacy-note, empty-state, mobile tweaks, reduced-motion,
-                         # lang-toggle, print styles
-    core/core.css        # home page: hero, scan-panel, how-step
-    accounts/accounts.css# auth-card + password-toggle (login/signup)
-    chatbot/chatbot.css  # floating assistant: FAB, panel, header, messages, FAQ, form
-    doctors/doctors.css  # doctors finder map UI + radar overlay + MapLibre popup
-    education/education.css # HAM10000 class library cards + detail figures
-    predictor/predictor.css # prediction loading overlay (stages, scan line, spinner)
-    tracker/tracker.css  # timeline + btn-link-danger (tracker/detail)
-    multi_image/multi_image.css    # placeholder (uses shared base/global classes)
-    photo_guide/photo_guide.css    # placeholder (uses shared base/global classes)
-    questionnaire/questionnaire.css # placeholder (uses shared base/global classes)
-    reliability/reliability.css     # placeholder (uses shared base/global classes)
-    similar_cases/similar_cases.css # placeholder (uses shared base/global classes)
-    dashboard/dashboard.css         # placeholder (uses shared base/global classes)
-  js/main.js             # global JS
-  js/image-upload.js     # drag-and-drop upload component
-  js/chatbot.js          # floating chatbot client (FAQ buttons + alignment)
-media/                   # user uploads (gitignored)
-  uploads/               # uploaded prediction images
-  tracked/               # follow-up tracker photos
-  reference/             # reference dataset for Similar Cases (when enabled)
-scripts/                 # development scripts (smoke tests, etc.)
-tests/                   # Django test suite
-  _helpers.py            # in-memory skin-like test image generator
-  test_chatbot_privacy.py# FAQ-only anonymous, Gemini prevention, IDOR, auth regression
-  test_views.py          # auth, uploads, history, tracker, chatbot endpoint
-  ... (see "Running tests" below for the full list)
-db/                      # SQLite db + cache (gitignored)
-.env / .env.example      # environment configuration
-Procfile                 # Render/Heroku-style process file (single worker)
-render.yaml              # Render Blueprint
-runtime.txt              # Python version pin
-requirements.txt
-requirements-ml.txt          # optional TensorFlow/Keras inference dependencies
-manage.py
+# Run the full test suite
+python manage.py test tests
 ```
 
 ---
 
-## Configuration (environment variables)
+## Environment Variables
 
-| Variable                   | Default                                          | Notes                                                |
-| -------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
-| `DJANGO_DEBUG`             | `True`                                           | Set `False` in production.                          |
-| `DJANGO_SECRET_KEY`        | `dev-insecure-...`                               | Generate a long random string for production.       |
-| `DJANGO_ALLOWED_HOSTS`     | `localhost,127.0.0.1,...`                        | Comma-separated. Render domain is auto-added.       |
-| `DATABASE_URL`             | unset                                            | Hosted PostgreSQL connection string; SSL is required. |
-| `CLOUDINARY_URL`           | unset locally                                    | Required when `DJANGO_DEBUG=False`; use `cloudinary://API_KEY:API_SECRET@CLOUD_NAME`. |
-| `LOCAL_DB_HOST`            | unset                                            | Set to `127.0.0.1` to use PostgreSQL installed on your PC. |
-| `LOCAL_DB_PORT`            | `5432`                                           | Local PostgreSQL port.                               |
-| `LOCAL_DB_NAME`            | unset                                            | Local database name; required when `LOCAL_DB_HOST` is set. |
-| `LOCAL_DB_USER`            | unset                                            | Local database user; required when `LOCAL_DB_HOST` is set. |
-| `LOCAL_DB_PASSWORD`        | blank                                            | Local database password; keep it in your ignored `.env`. |
-| `LOCAL_DB_SSLMODE`         | `disable`                                        | Local connection SSL mode; use `require` only if configured. |
-| `ML_MODEL_BACKEND`         | `keras`                                          | `keras` / `mock` / `onnx` / `api`. Render uses `api`. |
-| `ML_MODEL_PATH`            | attached `.keras` model                          | Path to the fine-tuned model file; defaults to `/tmp/dermacheckerbd/resnet50_finetuned_1791994962604.keras` when `MODEL_GDRIVE_URL` is set. |
-| `MODEL_GDRIVE_URL`         | unset                                            | Optional public Google Drive share link. If the model is missing, it downloads at WSGI startup. |
-| `AI_API_URL`               | local URL in development                         | Base URL for the seven-class API; Django sends `POST {AI_API_URL}/predict` with multipart field `file`. Required in production when `ML_MODEL_BACKEND=api`. |
-| `AI_SKIN_API_URL`          | unset                                            | Base/tunnel URL or full endpoint for the separate skin/non-skin API. A root URL gets `AI_SKIN_API_PATH` appended; an explicit path is preserved. Required in production when `ML_MODEL_BACKEND=api`. |
-| `AI_SKIN_API_PATH`         | `/api/check-skin`                                | POST route appended only when `AI_SKIN_API_URL` is a root URL. |
-| `AI_SKIN_API_FILE_FIELD`   | `file`                                           | Multipart field name expected by the skin/non-skin API. |
-| `AI_API_TOKEN`             | unset                                            | Optional bearer token for the seven-class API. Store it as a Render environment variable. |
-| `AI_SKIN_API_TOKEN`        | `AI_API_TOKEN`                                   | Optional bearer token for the skin/non-skin API; falls back to `AI_API_TOKEN`. |
-| `AI_API_TIMEOUT`           | `120` seconds                                    | Per-request timeout for both ML APIs. |
-| `ML_MODEL_INPUT_SIZE`      | `224`                                            | Resize dimension used in preprocessing.             |
-| `ML_MODEL_CLASSES`         | `akiec,bcc,bkl,df,mel,nv,vasc`                   | Must match the trained model's output order.        |
-| `ML_MODEL_RESAMPLE`        | `BILINEAR`                                       | Resize filter; matches the supplied training pipeline. |
-| `GEMINI_API_KEY`           | unset                                            | Leave unset to run chatbot in offline mode. **Anonymous visitors never trigger Gemini calls** even when this key is set; the key is only consulted for authenticated users. |
-| `GEMINI_MODEL`             | `gemini-2.0-flash`                               | Model name.                                          |
-| `GEOAPIFY_API_KEY`         | unset                                            | Optional key for Nearby Doctors and Hospitals.      |
-| `DJANGO_SUPERUSER_USERNAME`| unset                                            | Set in Render to create the initial admin account.   |
-| `DJANGO_SUPERUSER_PASSWORD`| unset                                            | Set in Render; at least 12 characters.              |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | unset                                          | Optional comma-separated trusted origins. Replit preview origins are allowed automatically in development only. |
-| `CHATBOT_RATE_LIMIT`       | `10/m`                                           | django-ratelimit spec (10 messages/minute/IP). Applies to anonymous AND authenticated users. |
-| `IMG_BLUR_THRESHOLD`       | `100.0`                                          | Laplacian-variance threshold for blur.              |
-| `IMG_BRIGHTNESS_MIN/MAX`   | `40 / 220`                                       | Acceptable mean-intensity range.                    |
-| `RELIABILITY_TRANSFORMS`   | `brightness_up,...,slight_rotation`              | Comma-separated transform names.                    |
-| `SIMILAR_CASES_ENABLED`    | `False`                                          | Toggle Similar Case Explorer.                       |
-| `IMAGE_RETENTION_DAYS`     | `0`                                              | 0 = keep forever.                                   |
+All configuration is environment-driven via `.env` (local) or the Render
+dashboard (production). See `.env.example` for the complete list.
 
-### Render Django admin account
+### Core Django
 
-Set `DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD` in the Render
-web service environment. The Render start command runs migrations and
-`ensure_render_superuser`, which creates the account once and never changes an
-existing account's password. Both values are required for the Render Blueprint
-to start. The footer's **Admin** link opens `/admin/`; only staff users can sign
-in there. Do not commit the password to the repository.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DJANGO_DEBUG` | `True` | Debug mode. Set `False` in production. |
+| `DJANGO_SECRET_KEY` | (dev key) | Django secret key. **Must** be set when `DEBUG=False`. |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1,...` | Comma-separated allowed hosts. |
+| `DATABASE_URL` | (empty → SQLite) | PostgreSQL URL for production (`postgres://user:pass@host:port/db`). |
+| `CLOUDINARY_URL` | (empty → local) | Cloudinary URL for production image storage. |
 
----
+### ML Model
 
-## Prediction model
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `ML_MODEL_BACKEND` | `keras` | `keras` / `mock` / `onnx` / `api`. See [AI/ML Model](#aiml-model--prediction-workflow). |
+| `ML_MODEL_PATH` | `attached_assets/...` | Path to the `.keras` model file. |
+| `ML_MODEL_INPUT_SIZE` | `224` | Input dimension for the model. |
+| `ML_MODEL_CLASSES` | `akiec,bcc,bkl,df,mel,nv,vasc` | Comma-separated class codes. |
+| `AI_API_URL` | (empty) | FastAPI base URL when `ML_MODEL_BACKEND=api`. |
+| `AI_SKIN_API_URL` | (empty) | Skin/non-skin validation API URL. |
 
-The default model is `attached_assets/resnet50_finetuned_1791994962604.keras`,
-a fine-tuned ResNet50 for the seven HAM10000 diagnosis classes. Keep the model
-at that path or set `ML_MODEL_PATH` to its location. It is about 201 MB and
-should not be committed to Git.
+### Chatbot (Multi-Provider Cascade)
 
-Inference converts each upload to RGB, resizes it to 224×224 with bilinear
-interpolation, converts pixels back to `[0, 255]`, and applies
-`tf.keras.applications.resnet50.preprocess_input` before calling the model.
-Output order is `akiec,bcc,bkl,df,mel,nv,vasc`. The `.keras` model is loaded
-once per application process on the first prediction, then reused.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | (empty) | Google Gemini API key. Primary provider. |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini model slug. |
+| `GEMINI_TIMEOUT` | `8` | Per-call timeout (seconds). |
+| `GROQ_API_KEY` | (empty) | Groq API key. Secondary provider. |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model slug. |
+| `GROQ_TIMEOUT` | `8` | Per-call timeout (seconds). |
+| `OPENROUTER_API_KEY` | (empty) | OpenRouter API key. Tertiary provider. |
+| `OPENROUTER_MODEL` | `openrouter/free` | OpenRouter model slug (auto-router). |
+| `OPENROUTER_TIMEOUT` | `12` | Per-call timeout (seconds). |
+| `CHATBOT_PROVIDER_ORDER` | `gemini,groq,openrouter` | Cascade order. |
+| `CHATBOT_PROVIDER_COOLDOWN_SECONDS` | `30` | Cooldown after a retryable failure. |
+| `CHATBOT_CASCADE_DEADLINE_SECONDS` | `15` | Total cascade time budget. |
+| `CHATBOT_DEFER_PERSISTENCE` | `True` | Defer usage-log + conversation writes. |
+| `CHATBOT_RATE_LIMIT` | `10/m` | Per-IP rate limit for chatbot messages. |
 
-The model file was provided with reported test metrics of 73.49% accuracy,
-61.67% macro F1, and 95.77% macro AUC; those figures have not been independently
-verified and do not establish clinical validity. This is an educational/research
-prototype, not a medical diagnostic tool. Consult a qualified dermatologist or
-healthcare professional for proper evaluation.
+### Geoapify (Nearby Doctors)
 
-Set `ML_MODEL_BACKEND=mock` to use deterministic demo predictions instead.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `GEOAPIFY_API_KEY` | (empty) | Geoapify API key. Leave empty to disable search. |
+
+### Render Free-Tier Optimizations
+
+Set these in the Render dashboard (NOT in `.env`):
+
+```
+MALLOC_TRIM_THRESHOLD_=65536     # reduces glibc malloc fragmentation
+TF_CPP_MIN_LOG_LEVEL=3           # silences TensorFlow C++ logging
+WEB_CONCURRENCY=1                # single gunicorn worker
+```
 
 ---
 
-## Floating chatbot — anonymous FAQ-only vs. authenticated full Gemini
+## Database Setup & Migrations
 
-The floating chatbot has two distinct paths enforced at the top of
-`apps/chatbot/views.py:message_view()`:
+### Local (SQLite)
 
-### Anonymous (logged-out) visitors — FAQ-only, NO Gemini calls
+The default `DATABASES` setting uses SQLite at `db/db.sqlite3`. No extra
+setup is needed — `python manage.py migrate` creates the file.
 
-- The visitor sees **7 predefined FAQ quick-reply buttons** in the chatbot
-  panel. Clicking a button sends `{"faq_id": "..."}` and the server returns the
-  canned answer for that FAQ (English or Bengali, matching the UI language).
-- The visitor can also type a free-text question. The server matches it
-  against the 7 FAQs (substring / keyword match). If a FAQ matches, the canned
-  answer is returned. If nothing matches, a short guidance message is returned
-  along with the FAQ list so the buttons can be re-rendered.
-- Personal-data questions ("my dashboard", "my history", …) are redirected to
-  a "please sign in" message — **still without calling Gemini**.
-- The `GeminiService.chat` function is **never invoked** on the anonymous path,
-  even when `GEMINI_API_KEY` is configured. This is enforced both in the view
-  and verified by tests (`tests/test_chatbot_privacy.py::AnonymousFaqOnlyTests`).
-- Anonymous responses include `"scope": "public"`, `"authed": false`, and either
-  `"faq_id": "<id>"` (when a FAQ was answered) or `"faq_id": ""` (guidance /
-  sign-in redirect). The guidance response also carries `"faqs": [...]` so the
-  frontend can render the buttons.
+### Production (PostgreSQL via Neon)
 
-### Authenticated (logged-in) users — full multi-provider AI chatbot
+1. Create a PostgreSQL database on [Neon](https://neon.tech) (free tier).
+2. Copy the connection string.
+3. Set `DATABASE_URL` in the Render dashboard:
+   ```
+   DATABASE_URL=postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require
+   ```
+4. The Procfile runs `python manage.py migrate --noinput` on every deploy.
 
-- All existing chatbot behavior is preserved: AI-powered general answers,
-  the user's own dashboard summary (reconstructed from the authenticated
-  request — never from browser-supplied data), and aggregate-only totals for
-  staff / doctors with the medical-queue permission.
-- The `faq_id` / `faqs` fields are NOT included on authenticated free-text
-  responses — the frontend hides the FAQ bar for logged-in users.
-  **Authenticated users can still click a FAQ button** (if the frontend
-  sends `faq_id`) and receive the canned FAQ answer — the 7 Q&A support
-  is available to ALL users, logged in or not.
-- When no AI provider is configured, the authenticated path falls back to
-  the canned educational replies (existing behavior).
+### Models
 
-### Multi-Provider AI Fallback System (Gemini → Groq → OpenRouter)
+| App | Model | Purpose |
+| --- | --- | --- |
+| `accounts` | `PatientProfile` | Patient contact + demographic details. |
+| `predictor` | `PredictionRecord` | One per uploaded image. Stores class, confidence, image, review status. |
+| `tracker` | `LesionRecord` | Tracked lesion with body location, label, notes. |
+| `tracker` | `FollowUpPhoto` | Photos attached to a lesion record over time. |
+| `chatbot` | `ChatConversation` | One per authenticated user. |
+| `chatbot` | `ChatMessage` | Individual turns (user/model) within a conversation. |
+| `chatbot` | `ChatUsageLog` | One row per provider attempt — for the staff usage view. |
 
-The chatbot uses a cascading provider system for the authenticated AI
-path. Providers are tried in the order configured by
-`CHATBOT_PROVIDER_ORDER` (default `gemini,groq,openrouter`):
+---
 
-1. **Gemini** (primary) — `google-genai` SDK, `GEMINI_API_KEY`
-2. **Groq** (secondary) — OpenAI-compatible HTTP API, `GROQ_API_KEY`
-3. **OpenRouter** (tertiary) — OpenAI-compatible HTTP API, `OPENROUTER_API_KEY`
+## AI/ML Model & Prediction Workflow
 
-When a provider fails with a **retryable** error (HTTP 429 rate limit,
-quota exhaustion, timeout, 5xx server error), it is placed on a
-**cooldown** for `CHATBOT_PROVIDER_COOLDOWN_SECONDS` seconds (default 60)
-and the cascade immediately tries the next provider. While a provider is
-on cooldown it is skipped entirely — the cascade does not waste a request
-on a provider that just failed.
+### Model
 
-The cascade logs every provider attempt to `ChatUsageLog` (provider, model,
-success, error code, latency, token usage, timestamp) and persists every
-authenticated user/model turn to `ChatConversation` / `ChatMessage`
-(server-side conversation history, capped at `CHATBOT_HISTORY_KEEP`
-turns per user).
+- **Architecture**: Fine-tuned ResNet50 (ImageNet pretrained backbone).
+- **Dataset**: HAM10000 (Tschandl et al.).
+- **Input**: 224×224 RGB, normalized.
+- **Output**: Softmax over 7 classes.
 
-New endpoints:
+### Seven HAM10000 Classes
+
+| Code | Full Name | Category |
+| --- | --- | --- |
+| `akiec` | Actinic Keratoses / Bowen's Disease | Pre-malignant |
+| `bcc` | Basal Cell Carcinoma | Malignant |
+| `bkl` | Benign Keratosis-like Lesions | Benign |
+| `df` | Dermatofibroma | Benign |
+| `mel` | Melanoma | Malignant |
+| `nv` | Melanocytic Nevi | Benign |
+| `vasc` | Vascular Lesions | Benign |
+
+### Prediction Backends (`ML_MODEL_BACKEND`)
+
+| Backend | RAM Use | When to Use |
+| --- | --- | --- |
+| `keras` | ~700 MB+ | Local dev with the bundled `.keras` model file. **Not suitable for Render free tier.** |
+| `mock` | ~180 MB | Demos / chatbot-only deployments. Deterministic hash-based predictions. |
+| `api` | ~200 MB | **Production.** Forwards to a separate FastAPI service that loads TensorFlow. |
+| `onnx` | ~300 MB | Optional ONNX runtime (not bundled). |
+
+### Prediction Workflow
+
+1. User uploads an image on `/predict/` or `/quality/`.
+2. **Skin/non-skin validation** — the image is sent to the
+   `AI_SKIN_API_URL` endpoint. If classified as non-skin, the upload is
+   rejected with a localized message.
+3. **Wrong-input protection** — `WrongInputService` checks for corrupt
+   files, extreme dimensions, and coarse skin-plausibility.
+4. **Image quality assessment** (Smart Photo Guide only) — blur,
+   exposure, framing, and skin-ratio are checked before prediction.
+5. **Prediction** — `PredictionService.predict_pil()` runs the model and
+   returns a `PredictionResult` with class, confidence, and probabilities.
+6. **Reliability check** (optional) — the image is transformed (brightness,
+   contrast, rotation) and the prediction is re-run. Agreement percentage
+   measures stability.
+7. **PDF report** — `PdfReportService` generates a downloadable report
+   with the image, prediction, quality, and reliability data.
+
+---
+
+## Multi-Provider Chatbot (Gemini → Groq → OpenRouter)
+
+### Access Contract
+
+- **Anonymous users**: 7 predefined FAQs only. No AI provider is ever
+  called. The FAQ list lives in `apps/chatbot/faqs.py`.
+- **Authenticated users**: Full multi-provider AI cascade for free-text
+  questions. Can also click FAQ buttons (7 Q&A available to all users).
+
+### Cascade Flow
+
+```
+User message
+    │
+    ▼
+GeminiService.chat (legacy entry point, patched in tests)
+    │
+    ▼
+FallbackChatService.chat
+    │
+    ├─ 1. Build system prompt (staff / authenticated / public scope)
+    ├─ 2. For each provider in CHATBOT_PROVIDER_ORDER:
+    │      ├─ Skip if not configured
+    │      ├─ Skip if on cooldown
+    │      ├─ Call provider.chat()
+    │      ├─ On success: log usage, persist conversation, return
+    │      └─ On retryable error: set cooldown, try next provider
+    └─ 3. If cascade deadline exceeded or all providers failed:
+           return localized canned reply
+```
+
+### Error Detection
+
+The `classify_http_error()` function maps HTTP status codes to specific
+exception types:
+
+| Status | Exception | Cooldown? |
+| --- | --- | --- |
+| 401 / 403 | `ProviderAuthError` | No (config error) |
+| 402 | `QuotaExhaustedError` | Yes |
+| 429 + "quota" in body | `QuotaExhaustedError` | Yes |
+| 429 (plain) | `RateLimitError` | Yes |
+| 400-4xx + "model not found" | `model_not_found` (non-retryable) | No |
+| 400-4xx (other) | `client_error` | Yes |
+| 500 / 502 / 503 / 504 | `ProviderServerError` | Yes |
+| Timeout | `ProviderTimeoutError` | Yes |
+
+### Model Name Deprecations (Late 2026)
+
+AI providers retire model names frequently. The defaults are kept
+current, but if you previously set env vars, check for deprecated values:
+
+| Provider | Deprecated Model | Replacement |
+| --- | --- | --- |
+| Groq | `llama-3.3-70b-versatile` | `openai/gpt-oss-120b` |
+| OpenRouter | `meta-llama/llama-3.1-8b-instruct:free` | `openrouter/free` |
+| OpenRouter | `deepseek/deepseek-r1:free` | `openrouter/free` |
+
+Run `python manage.py test_chatbot_providers` to verify — it prints a
+deprecation warning if it detects retired model names.
+
+### Diagnostic Endpoints
 
 | Endpoint | Method | Access | Purpose |
 | --- | --- | --- | --- |
-| `/chatbot/message/` | POST | All users | FAQ button clicks work for everyone; AI cascade requires login |
-| `/chatbot/history/` | GET | Login required | Returns the persisted server-side conversation |
-| `/chatbot/clear/` | POST | Login required | Clears the persisted conversation |
-| `/chatbot/providers/` | GET | Login required | Provider configuration + cooldown state (no API keys exposed) |
-| `/chatbot/usage/` | GET | Staff only | Recent `ChatUsageLog` rows + per-provider success-rate summary |
+| `/chatbot/message/` | POST | All users | FAQ button clicks (all users); AI cascade (authed only) |
+| `/chatbot/history/` | GET | Login required | Persisted server-side conversation |
+| `/chatbot/clear/` | POST | Login required | Clear persisted conversation |
+| `/chatbot/providers/` | GET | Login required | Provider config + cooldown state |
+| `/chatbot/usage/` | GET | Staff only | Recent `ChatUsageLog` rows + success-rate summary |
+| `/chatbot/diagnose/` | GET | Staff only | Live-test each provider with a tiny prompt |
 
-Management command for clearing cooldowns after a provider outage:
+---
+
+## API Endpoints
+
+### Core Pages
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/` | `core:home` | Landing page |
+| `/about/` | `core:about` | Project information |
+| `/how-it-works/` | `core:how_it_works` | Workflow explanation |
+| `/privacy/` | `core:privacy` | Privacy policy |
+
+### Auth
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/accounts/signup/` | `account_signup` | New account creation |
+| `/accounts/login/` | `login` | Django login |
+| `/accounts/logout/` | `logout` | Django logout |
+| `/accounts/profile/` | `account_profile` | Edit profile (login required) |
+| `/accounts/dashboard/` | `account_dashboard` | User dashboard (login required) |
+
+### Prediction
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/predict/` | `predictor:upload` | Upload image for prediction |
+| `/predict/result/<ref>/` | `predictor:result` | View prediction result |
+| `/predict/result/<ref>/pdf/` | `predictor:pdf_report` | Download PDF report |
+| `/predict/result/<ref>/delete/` | `predictor:delete` | Delete prediction record |
+| `/predict/history/` | `predictor:history` | Prediction history (login required) |
+| `/predict/history/clear/` | `predictor:clear_history` | Clear history |
+
+### Smart Photo Guide
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/quality/` | `photo_guide:quality_check` | Image quality assessment + transfer to prediction |
+
+### Reliability
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/reliability/` | `reliability:check` | Run reliability check |
+| `/reliability/dashboard/` | `reliability:dashboard` | Reliability dashboard |
+
+### Multi-Image Comparison
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/multi/` | `multi_image:compare` | Compare 2–5 images |
+
+### Lesion Tracker
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/tracker/` | `tracker:index` | List tracked lesions |
+| `/tracker/new/` | `tracker:create` | Create new lesion record |
+| `/tracker/<id>/` | `tracker:detail` | View lesion detail |
+| `/tracker/<id>/add-photo/` | `tracker:add_photo` | Add follow-up photo |
+| `/tracker/<id>/delete/` | `tracker:delete` | Delete lesion record |
+| `/tracker/<id>/summary.pdf` | `tracker:summary_pdf` | Download lesion PDF |
+
+### Education & Questionnaire
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/disease/` | `education:index` | Skin health library |
+| `/disease/<code>/` | `education:detail` | Class detail page |
+| `/disease/article/<slug>/` | `education:article` | Educational article |
+| `/warning-signs/` | `questionnaire:form` | ABCDE warning signs checker |
+
+### Doctors
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/doctors/` | `doctors:finder` | Nearby doctors search |
+| `/doctors/search/` | `doctors:search` | Places API search |
+| `/doctors/geocode/` | `doctors:geocode` | Geocode a location |
+| `/doctors/panel/` | `doctors:panel` | Doctor review panel (staff) |
+
+### Chatbot
+
+See [Multi-Provider Chatbot](#multi-provider-chatbot-gemini--groq--openrouter).
+
+### System
+
+| URL | View | Purpose |
+| --- | --- | --- |
+| `/healthz/` | `health_check` | Lightweight health check for uptime monitors |
+| `/admin/` | admin | Django admin |
+
+---
+
+## Management Commands
 
 ```bash
-python manage.py clear_chat_cooldowns              # clear all providers
-python manage.py clear_chat_cooldowns gemini       # clear only Gemini
+# Chatbot diagnostics
+python manage.py test_chatbot_providers          # live-test each AI provider
+python manage.py clear_chat_cooldowns [gemini]   # clear provider cooldowns
+python manage.py keep_chatbot_warm --url https://your-app.onrender.com/healthz/
+
+# Maintenance
+python manage.py ensuresuperuser                 # create admin user
+python manage.py prune_old_predictions           # delete old prediction records
+python manage.py migrate                         # apply migrations
+python manage.py collectstatic --noinput         # collect static files
 ```
 
-The `provider` field in the `/chatbot/message/` response payload tells
-the caller which provider answered (`"gemini"`, `"groq"`, `"openrouter"`,
-or `"canned"` when every provider failed).
-
-### The 7 predefined FAQs
-
-The list lives in `apps/chatbot/faqs.py` and is intentionally kept at 7 items
-so the button bar stays compact on mobile. Each FAQ has stable ids, English and
-Bengali questions, and English and Bengali answers:
-
-| id            | English question                          |
-| ------------- | ----------------------------------------- |
-| `what_is`     | What is DermaCheckerBD?                   |
-| `accuracy`    | How accurate are the predictions?         |
-| `photo_guide` | How do I upload a clear photo?            |
-| `class_names` | What do the class names (mel, nv, bcc…) mean? |
-| `disclaimer`  | Is this a medical diagnosis?              |
-| `find_doctor` | How do I find a dermatologist nearby?     |
-| `signup`      | How do I sign up or log in?               |
-
-Use `apps.chatbot.faqs.list_faqs(language)` to get the id+question list, and
-`get_faq_answer(faq_id, language)` to get a single answer.
-
-### Chatbot UI alignment + responsive layout
-
-- **Header layout** — title and avatar sit on the left (`.chatbot-head-id`),
-  the **Clear** and **Close (X)** icon buttons sit horizontally on the right
-  inside `.chatbot-head-actions { display: flex; flex-wrap: nowrap; gap: 0.4rem }`.
-  This rule is required: each `.chatbot-icon-btn` uses `display: flex` (so it
-  is a block-level flex container); without the parent flex rule the two
-  buttons stack vertically. Verified side-by-side on desktop (1280×900) and
-  mobile (390×844). Styles live in `static/css/chatbot/chatbot.css`.
-- **User messages** are right-aligned (`.chatbot-msg.user` → `justify-content: flex-end`;
-  `.chatbot-msg.user .chatbot-msg-bubble { text-align: right }`). The JS also
-  sets `bubble.style.textAlign = "right"` per bubble for extra robustness.
-- **Chatbot replies** are left-aligned (`.chatbot-msg-bot` → `justify-content: flex-start`;
-  `.chatbot-msg-bot .chatbot-msg-bubble { text-align: left }`).
-- **Responsive mobile**: at `max-width: 480px` the panel becomes full-bleed
-  (full width, 88vh height, top-rounded corners only). At `max-width: 360px`
-  the bubble `max-width` increases to 92% so longer Bangla questions do not
-  wrap awkwardly.
-- **FAQ quick-reply buttons** wrap horizontally and use a pill style; on mobile
-  they shrink to keep the bar readable.
-
-### CSS architecture (modular per-app files)
-
-Styles are split per Django app so you can edit one feature without searching
-a monolithic stylesheet. `static/css/main.css` is now an entry point only —
-it contains 11 ordered `@import` statements that pull in the modular files
-in the same order the original `main.css` had them, so existing cascade
-overrides continue to work unchanged.
-
-- To change chatbot styling, edit `static/css/chatbot/chatbot.css`.
-- To change the home hero / scan panel, edit `static/css/core/core.css`.
-- To change the prediction-result report, edit `static/css/predictor-result.css`
-  (this file is loaded separately by `templates/predictor/result.html` via its
-  `extra_head` block; it is NOT `@import`ed by `main.css` to avoid double-load).
-- Shared rules used by ≥2 apps live in `static/css/base/global.css`
-  (navbar, footer, buttons, cards, badges, `upload-area`, `result-banner`,
-  `stat-block`, `qcheck-*`, `medical-disclaimer`, `privacy-note`,
-  `empty-state`, mobile tweaks, reduced-motion, print styles).
-- Design tokens (colors, fonts, spacing, radius) live in
-  `static/css/base/variables.css` as `:root` custom properties.
-
-No Django template was modified to enable the split — the existing
-`<link rel="stylesheet" href="{% static 'css/main.css' %}">` tag in
-`templates/base.html` transparently pulls in every modular file. Comments
-were stripped from all CSS files; only rule bodies, `@import`s,
-`@keyframes`, `@media` blocks, and `:root` tokens remain.
-
 ---
 
-## Enabling the live Gemini chatbot
+## Deployment (Render)
 
-1. Get a Gemini API key from <https://aistudio.google.com/app/apikey>.
-2. Set `GEMINI_API_KEY=...` in your environment.
-3. Restart the server. The floating chatbot will switch from offline canned
-   responses to real Gemini calls — **but only for authenticated users**.
-   Anonymous visitors continue to receive the 7 FAQs and never trigger a
-   Gemini call.
+### Option A: Render Dashboard (manual)
 
-The chatbot's system prompt (see `apps/common/services/gemini.py`) forbids
-diagnosing cancer, prescribing medication, or promising a lesion is safe based
-on the model output. Image bytes are never sent to Gemini — only text.
+1. Create a new Web Service on [Render](https://render.com) connected to
+   your Git repository.
+2. Set the following:
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt && python manage.py collectstatic --noinput`
+   - **Start Command**: (from Procfile)
+     ```
+     python manage.py migrate --noinput && python manage.py ensure_render_superuser && gunicorn dermacheckerbd.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60 --graceful-timeout 10 --max-requests 80 --max-requests-jitter 40 --worker-tmp-dir /dev/shm --access-logfile -
+     ```
+3. Add environment variables (see [Environment Variables](#environment-variables)).
+4. Create a Neon PostgreSQL database and set `DATABASE_URL`.
 
-### Chatbot access and privacy
+### Option B: Render Blueprint (`render.yaml`)
 
-The floating assistant sends messages to Django; the browser never calls Gemini
-directly. `GEMINI_API_KEY` stays on the server and should be stored in an
-environment variable or the hosting platform's secrets manager, never in
-frontend code or a committed file.
+The repo includes a `render.yaml` Blueprint. Fork the repo, connect it to
+Render, and Render will create the service automatically.
 
-- **Visitors who are not signed in** can ONLY access the 7 predefined FAQs.
-  Gemini is never called for them, so anonymous traffic cannot drive paid API
-  usage. Requests for personal information are redirected to "please sign in".
-- **Signed-in users** can ask about their own dashboard and recent activity.
-  The server builds private context only from the authenticated account;
-  browser-supplied dashboard data is not accepted.
-- **Django staff and doctors with the medical follow-up queue permission** can
-  ask for anonymized site-wide totals and trends, such as user, prediction, and
-  tracked-lesion counts or prediction/review-status summaries. The assistant
-  does not receive usernames, contact details, individual histories, or
-  individual records, and it refuses requests to reveal them.
+### Render Free-Tier RAM Optimization
 
-The chatbot is informational only and does not provide a diagnosis. Gemini
-receives text conversation only; uploaded images are not sent to the API.
+The Render free tier has **512 MB RAM**. To stay within this limit:
 
----
-
-## Privacy, IDOR prevention, and ownership checks
-
-Every endpoint that exposes personal data enforces Django authentication and
-ownership. Cross-user access (Insecure Direct Object Reference, IDOR) is
-blocked at every layer:
-
-| Endpoint                                          | Auth required      | Ownership check                                                                                            |
-| ------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `GET /predict/result/<ref>/`                      | Owner or session   | `record.user == request.user` (or same `session_key` for anonymous). Staff with `view_medical_priority_queue` may view. Otherwise 403. |
-| `GET /predict/result/<ref>/pdf/`                  | Owner or session   | Same as above. 403 on mismatch.                                                                            |
-| `POST /predict/result/<ref>/delete/`              | Owner or session   | Same as above. 403 on mismatch. Record remains.                                                            |
-| `GET /predict/history/`                           | Anyone             | Queryset scoped via `_scope_queryset()`: authenticated → own records; anonymous → own `session_key` records. |
-| `GET /predict/history/?export=json`               | Anyone             | Same scope; capped at 200 records.                                                                          |
-| `GET /tracker/`, `GET /tracker/<id>/`             | `@login_required`  | `LesionRecord.objects.filter(user=request.user)`; `get_object_or_404(..., user=request.user)`. Other users get 404. |
-| `POST /tracker/<id>/add-photo/`                   | `@login_required`  | Same.                                                                                                       |
-| `POST /tracker/<id>/delete/`                      | `@login_required`  | Same.                                                                                                       |
-| `GET /tracker/<id>/summary.pdf`                   | `@login_required`  | Same.                                                                                                       |
-| `GET /accounts/profile/`, `GET /accounts/dashboard/` | `@login_required` | All queries scoped to `request.user`.                                                                       |
-| `POST /chatbot/message/`                          | Anyone             | Anonymous: FAQ-only, no Gemini. Authenticated: only `request.user`'s own dashboard summary is built; browser-supplied context is ignored. Staff: aggregate-only totals; individual records refused. |
-| `GET /doctors/panel/`, `POST /doctors/.../review/` | `medical_queue_access_required` | Restricted to staff / queue-permission holders.                                                             |
-
-Anonymous session-scoped prediction records are isolated by `session_key`; a
-different browser session cannot view, delete, or export them. The chatbot
-endpoint also ignores any browser-supplied `history` field — even if a
-malicious user injects another user's reference id into the conversation
-history, the server only builds context from the authenticated request.
-
----
-
-## Low-RAM / low-CPU contract (Render single-worker compatible)
-
-The deployment stays on Render's free / single-worker plan without any increase
-in memory or CPU requirements:
-
-- **Anonymous chatbot path is fully static.** FAQ answers are read from a
-  Python list — no Gemini client init, no model load, no DB queries. RAM and
-  CPU stay flat regardless of anonymous traffic.
-- **Gemini client is lazy + cached.** `GeminiService._client` / `_model` are
-  class-level attributes built on first authenticated chatbot call. There is
-  no per-request client construction and no background worker.
-- **No AI model is loaded into Django memory for the chatbot.** The chatbot
-  sends text only; image classification lives behind the separate FastAPI
-  `ML_MODEL_BACKEND=api` path on Render.
-- **Bounded request sizes.** `DATA_UPLOAD_MAX_MEMORY_SIZE = 10 MB`,
-  `FILE_UPLOAD_MAX_MEMORY_SIZE = 10 MB`. Chatbot messages are capped at 600
-  characters. History is truncated to the last 10 messages server-side.
-- **Efficient DB queries.** Chatbot dashboard summaries use `values() +
-  annotate(Count)` instead of fetching full rows. Tracker / history lists use
-  indexed `(user, -created_at)` and `(session_key, -created_at)` indexes.
-- **No new heavy dependencies.** `requirements.txt` is unchanged; the FAQ
-  module uses only the Python standard library + Django.
-- **Single worker, multi-threaded, periodic recycle.** The Procfile is:
-  `gunicorn ... --workers 1 --threads 4 --timeout 60 --graceful-timeout 10
-  --max-requests 80 --max-requests-jitter 40 --worker-tmp-dir /dev/shm`.
-  `--threads 4` lets one worker handle 4 concurrent requests without
-  forking; `--max-requests 80` recycles the worker to release leaked RAM
-  (critical on Render's 512MB tier); `--timeout 60` kills any request
-  that hangs for more than a minute.
-
----
-
-## Render free-tier: keeping the chatbot fast + within 512 MB RAM
-
-Render's free tier puts the web service to sleep after **15 minutes of
-inactivity** and limits RAM to **512 MB**. Both of these can make the
-chatbot feel slow or crash with "Memory quota exceeded". Here is how to
-fix each.
-
-### 1. Keep the process warm (no cold starts)
-
-After 15 minutes with zero requests, Render freezes the process. The
-first request after that takes 30+ seconds to wake up — the chatbot
-appears broken. Two options, pick one:
-
-**Option A — External uptime monitor (recommended, simplest):**
-
-Sign up at [UptimeRobot](https://uptimerobot.com/) or
-[cron-job.org](https://cron-job.org/) (both free) and create a job that
-pings `https://your-app.onrender.com/healthz/` every 10 minutes. Done.
-
-**Option B — Render Background Worker:**
-
-Add a Background Worker in the same Render service with start command:
-
-```
-python manage.py keep_chatbot_warm --url https://your-app.onrender.com/healthz/ --interval 600
-```
-
-### 2. Stay under 512 MB RAM
-
-The biggest RAM consumer in this project is **TensorFlow** (loaded by the
-ResNet50 predictor backend). On the free tier you have three choices:
-
-| Backend | RAM use | When to use |
-| --- | --- | --- |
-| `ML_MODEL_BACKEND=mock` | ~180 MB | Demos / chatbot-only deployments |
-| `ML_MODEL_BACKEND=api` | ~200 MB | Production — run TensorFlow in a separate FastAPI service |
-| `ML_MODEL_BACKEND=keras` | ~700 MB+ | Local dev only — **will crash on Render free tier** |
-
-**For the chatbot to work reliably on Render free tier:**
-
-1. Set `ML_MODEL_BACKEND=api` and run the ResNet50 model in a separate
-   FastAPI service (the repo ships with `scripts/mock_fastapi.py` as a
-   starting point). Django forwards prediction requests to the FastAPI
-   service via HTTP — TensorFlow stays out of the Django process.
-2. Or set `ML_MODEL_BACKEND=mock` if you only need the chatbot and don't
-   care about real predictions.
-3. Set these env vars in the Render dashboard (they are NOT Django
-   settings — they tune the C runtime and TensorFlow itself):
-
+1. **Do NOT use `ML_MODEL_BACKEND=keras`** — TensorFlow alone uses
+   ~700 MB. Use `ML_MODEL_BACKEND=api` (forward to a separate FastAPI
+   service) or `ML_MODEL_BACKEND=mock` (chatbot-only deployments).
+2. Set these env vars in the Render dashboard:
    ```
-   MALLOC_TRIM_THRESHOLD_=65536      # reduces glibc malloc fragmentation
-   TF_CPP_MIN_LOG_LEVEL=3            # silence TensorFlow C++ logging
-   WEB_CONCURRENCY=1                 # single gunicorn worker
+   MALLOC_TRIM_THRESHOLD_=65536
+   TF_CPP_MIN_LOG_LEVEL=3
+   WEB_CONCURRENCY=1
    ```
+3. The Procfile uses `--max-requests 80` to recycle the gunicorn worker
+   periodically, releasing any leaked RAM.
 
-### 3. Chatbot response time budget
+### Preventing Cold Starts (Free Tier)
 
-The multi-provider cascade is tuned for responsiveness, not for waiting
-on a slow provider:
+Render puts free-tier services to sleep after 15 minutes of inactivity.
+The first request after sleep takes 30+ seconds. To prevent this:
 
-| Setting | Default | Effect |
-| --- | --- | --- |
-| `GEMINI_TIMEOUT` | 8 s | Per-call HTTP timeout for Gemini |
-| `GROQ_TIMEOUT` | 8 s | Per-call HTTP timeout for Groq |
-| `OPENROUTER_TIMEOUT` | 12 s | Per-call HTTP timeout for OpenRouter |
-| `CHATBOT_CASCADE_DEADLINE_SECONDS` | 15 s | **Total** budget across all providers |
-| `CHATBOT_PROVIDER_COOLDOWN_SECONDS` | 30 s | How long a failed provider is skipped |
-| `CHATBOT_DEFER_PERSISTENCE` | True | Usage-log + conversation writes are deferred |
-
-Worst case: every provider times out → user waits ~15 s (the cascade
-deadline), then gets a localized canned reply. Best case: Gemini
-answers in ~2 s. Either way the chatbot feels responsive.
-
-### 3b. Model name deprecations (late 2026)
-
-AI providers retire model names frequently. As of November 2026, the
-following models that this project used to default to are **deprecated**
-and will return 4xx errors:
-
-| Provider | Deprecated model | Replacement |
-| --- | --- | --- |
-| Groq | `llama-3.3-70b-versatile` | `openai/gpt-oss-120b` (free tier retired Aug 16, 2026) |
-| OpenRouter | `meta-llama/llama-3.1-8b-instruct:free` | `openrouter/free` (auto-router) |
-| OpenRouter | `deepseek/deepseek-r1:free` | `openrouter/free` |
-| OpenRouter | `meta-llama/llama-3.3-70b-instruct:free` | `openrouter/free` |
-
-The defaults in `settings.py` and `.env.example` have been updated to
-the currently-valid replacements. If you previously set
-`GROQ_MODEL=llama-3.3-70b-versatile` or
-`OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free` in your Render
-environment variables, **you must update them**:
-
-```
-GROQ_MODEL=openai/gpt-oss-120b
-OPENROUTER_MODEL=openrouter/free
-```
-
-After updating, run `python manage.py test_chatbot_providers` to verify
-each provider is working. The command also prints a deprecation warning
-if it detects any of the retired model names in your configuration.
-
-Always verify current model names before deploying:
-- Groq: https://console.groq.com/docs/models
-- OpenRouter: https://openrouter.ai/models
-- Gemini: https://ai.google.dev/gemini-api/docs/models
-
-### 4. Connection pooling (built in)
-
-Groq and OpenRouter share a module-level `requests.Session`, so the
-TCP+TLS handshake happens once per process. After the first chatbot
-message, subsequent messages save ~200-500 ms of handshake latency.
+- **Option A (recommended)**: Use [UptimeRobot](https://uptimerobot.com)
+  or [cron-job.org](https://cron-job.org) to ping
+  `https://your-app.onrender.com/healthz/` every 10 minutes.
+- **Option B**: Add a Render Background Worker with start command:
+  ```
+  python manage.py keep_chatbot_warm --url https://your-app.onrender.com/healthz/ --interval 600
+  ```
 
 ---
 
-## Running tests
+## Bengali / English i18n
+
+The UI supports full Bengali (বাংলা) and English. A language toggle in
+the navbar switches between them. The i18n layer is client-side:
+
+- `static/js/translations.js` — Bengali dictionary keyed by translation
+  keys (e.g. `'nav.home'`, `'predict.subtitle'`).
+- `static/js/main.js` — applies translations to elements with
+  `data-i18n`, `data-i18n-ph`, `data-i18n-title`, `data-i18n-aria`
+  attributes. Captures the original English text on first run so it can
+  be restored when switching back.
+- **Server-rendered messages** (Django messages, upload errors) are
+  translated via the `data-i18n-server` attribute. The
+  `translateServerMessage()` function maps known English strings to
+  translation keys. A new message is added by:
+  1. Adding the key + Bengali value to `translations.js`.
+  2. Adding the English→key mapping in `translateServerMessage()` in
+     `main.js`.
+
+The language preference is stored in a cookie (`derma_lang`).
+
+---
+
+## Testing
 
 ```bash
-# Run the full suite (verbose)
+# Full test suite
+python manage.py test tests
+
+# Specific test modules
+python manage.py test tests.test_chatbot_privacy
+python manage.py test tests.test_views
+python manage.py test tests.test_services
+
+# Verbose
 python manage.py test tests -v2
-
-# Run only the new chatbot privacy tests
-python manage.py test tests.test_chatbot_privacy -v2
-
-# Run only the existing chatbot endpoint tests
-python manage.py test tests.test_views.ChatbotEndpointTests tests.test_views.LanguagePreferenceTests -v2
 ```
 
-The suite is split across these files in `tests/`:
+### Smoke Tests (standalone scripts)
 
-| File                          | What it covers                                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `test_chatbot_privacy.py`     | **NEW.** 40 tests: FAQ module, anonymous FAQ-only access, Gemini-call prevention for anonymous, authenticated full-Gemini preservation, template FAQ button rendering, IDOR prevention across predictor / tracker / chatbot, authenticated regression. |
-| `test_views.py`               | Auth, uploads, prediction history, tracker privacy, chatbot endpoint (updated for the new anonymous contract). |
-| `test_round2.py`              | History date validation, low-confidence banner, multi-image failures, tracker date validation, predictor access control, reliability low-confidence. |
-| `test_services.py`            | Service-layer behavior (prediction, image quality, reliability, multi-image, wrong-input, PDF).         |
-| `test_skin_validation.py`    | Skin/non-skin API integration.                                                                          |
-| `test_medical_queue.py`       | Doctor follow-up queue access control and review workflow.                                              |
-| `test_storage_settings.py`    | Cloudinary storage backend configuration.                                                               |
-| `test_geoapify.py`            | Nearby Doctors / Geoapify Places + Geocoding integration.                                               |
-| `test_education.py`           | Skin Health Library content + views.                                                                    |
+```bash
+# Test the multi-provider cascade with mocked providers
+python scripts/smoke_test_fallback.py
 
-Smoke tests (run them with `python scripts/`):
+# Test chatbot HTTP endpoints end-to-end
+python scripts/smoke_test_chatbot_http.py
 
-- `scripts/smoke_test_services.py` — exercises the service layer directly.
-- `scripts/http_e2e_test.py` — exercises the full HTTP pipeline against a
-  running server (start the server first, then run the script).
+# Test cascade deadline + deferred DB writes
+python scripts/smoke_test_deadline.py
 
-### Test status
-
-- **All chatbot-related tests pass** (57 tests across `test_chatbot_privacy.py`
-  + `ChatbotEndpointTests` + `LanguagePreferenceTests`).
-- The broader `tests/test_round2.py` file contains some pre-existing failures
-  that are unrelated to the chatbot fix (predictor access-control status code
-  mismatch, low-confidence banner threshold, reliability agreement when all
-  transforms fail, malformed date handling). These were present in the project
-  before the chatbot fix and are out of scope for "do not change anything else".
+# Test the ML prediction pipeline with the mock backend
+python scripts/smoke_test_services.py
+```
 
 ---
 
-## Deployment to Render
+## Troubleshooting
 
-### VS Code → GitHub → Render → Neon (Blueprint)
+### Chatbot returns "assistant is temporarily unavailable"
 
-1. In Neon, create a PostgreSQL project and copy its **pooled** connection
-   string. Keep it private.
-2. In VS Code, commit and push this project to the GitHub `main` branch.
-3. In Render, choose **New → Blueprint**, connect the GitHub repository, and
-   select `render.yaml`. The Blueprint creates the web service; it does not
-   create a database on Render.
-4. When Render asks for environment values, set these on the web service:
-   - `DATABASE_URL` — the Neon pooled connection string.
-   - `DJANGO_SECRET_KEY` — a new, long random value (never the development
-     placeholder).
-   - `DJANGO_SUPERUSER_USERNAME` and `DJANGO_SUPERUSER_PASSWORD` — your admin
-     login; use a strong password of at least 12 characters.
-   - `AI_API_URL` — the reachable HTTPS base URL of the seven-class API.
-   - `AI_SKIN_API_URL` — the HTTPS tunnel/base URL or full endpoint for the skin/non-skin API. A root URL uses `/api/check-skin`.
-   - `AI_SKIN_API_PATH` — defaults to `/api/check-skin`; only change it if the API exposes a different route.
-   - `AI_SKIN_API_FILE_FIELD` — the multipart upload field expected by that API (defaults to `file`).
-   - `AI_API_TOKEN` — only if the seven-class API requires bearer-token authentication.
-   - `AI_SKIN_API_TOKEN` — only if the skin/non-skin API needs a different token; otherwise it falls back to `AI_API_TOKEN`.
-   - `GEMINI_API_KEY` — optional; omit it to keep the assistant in offline mode. **Anonymous visitors never trigger Gemini calls** even when this is set; the key is only consulted for authenticated users.
-   - `GEOAPIFY_API_KEY` — optional; only needed for Nearby Doctors.
-5. Render deploys from `main` automatically after each push. The site health
-   endpoint is `/healthz/`; Django admin is at `/admin/`.
+1. Run `python manage.py test_chatbot_providers` to test each provider.
+2. Check for **deprecated model names** (the command prints a warning):
+   - Groq: `llama-3.3-70b-versatile` → use `openai/gpt-oss-120b`
+   - OpenRouter: `meta-llama/llama-3.1-8b-instruct:free` → use `openrouter/free`
+3. Verify API keys are set in the Render dashboard.
+4. Visit `/chatbot/diagnose/` (staff login required) for a live JSON
+   diagnostic of each provider.
 
-The Blueprint sets `ML_MODEL_BACKEND=api`, so this website does not download or
-load TensorFlow/model files. `requirements.txt` contains the web/API dependencies
-only; `requirements-ml.txt` is for local Keras inference.
+### Render "Memory quota exceeded"
 
-This Blueprint uses Render Free. Free web services do not support pre-deploy
-commands, so the start command applies migrations and creates the admin before
-starting one Gunicorn worker. These operations are safe to repeat on a single
-instance. Render Free services can sleep when idle; use a paid plan and a
-pre-deploy migration command if you later need always-on service or multiple
-instances.
+- Do NOT use `ML_MODEL_BACKEND=keras`. Use `api` or `mock`.
+- Set `MALLOC_TRIM_THRESHOLD_=65536` in the Render dashboard.
+- Verify the Procfile uses `--max-requests 80`.
 
-### Persistent image storage in production
+### Chatbot is slow
 
-Production requires a `CLOUDINARY_URL` deployment secret and uses Cloudinary
-for uploaded images. Set its value to the full URL in this form:
-`cloudinary://API_KEY:API_SECRET@CLOUD_NAME`. In Render, enter only the URL as
-the secret value—do not include `CLOUDINARY_URL=` or wrap it in quotes.
+- Timeouts are tight (8s Gemini, 8s Groq, 12s OpenRouter) with a 15s
+  total cascade deadline.
+- The cascade deadline ensures the user never waits more than ~15s.
+- If a provider is consistently slow, the cooldown (30s) skips it for
+  subsequent requests.
+- Run `python manage.py clear_chat_cooldowns` to reset all cooldowns.
 
-The URL must use the `cloudinary://` scheme. A missing URL or one with a
-different scheme causes Django to stop during startup instead of silently
-saving uploads to the ephemeral local filesystem. Local development continues
-to use `MEDIA_ROOT` when the URL is unset. Never commit or share the Cloudinary
-URL.
+### Cold starts (Render free tier)
+
+Render sleeps free-tier services after 15 min of inactivity. Use
+UptimeRobot to ping `/healthz/` every 10 minutes. See
+[Preventing Cold Starts](#preventing-cold-starts-free-tier).
+
+### Image upload rejected as "non-skin"
+
+The skin/non-skin validation API (`AI_SKIN_API_URL`) rejected the image.
+This is expected behavior for screenshots, diagrams, or non-skin photos.
+Upload a clear photo of a skin lesion. If the API is not configured
+(`ML_MODEL_BACKEND=mock` or `keras` without `AI_SKIN_API_URL`), the
+validation step is skipped.
 
 ---
 
-## Database migrations on Render
+## Limitations
 
-The Free-plan Blueprint runs `python manage.py migrate --noinput` before each
-web process starts, with one worker/instance. On a paid Render plan, prefer
-Render's `preDeployCommand` for migrations so database changes finish before
-the new web process starts.
-
----
-
-## Enabling the Similar Case Explorer
-
-The feature is shipped stubbed (`SIMILAR_CASES_ENABLED=False`). To enable:
-
-1. Place your reference image dataset (e.g., HAM10000) under a directory your
-   app can read.
-2. Pre-compute image embeddings for that dataset using a ResNet50 / CLIP /
-   EfficientNet backbone. Store them as a numpy matrix + a list of
-   `(image_id, label)` pairs.
-3. Implement `_compute_embedding()` and `search()` in
-   `apps/common/services/similar_cases.py`. The view layer is already wired up.
-4. Set `SIMILAR_CASES_ENABLED=True` and `SIMILAR_CASES_REFERENCE_DIR=...`.
-
----
-
-## Research evaluation protocol
-
-The system is designed for measurable experiments. Two features in particular
-support research:
-
-1. **AI Reliability Check** — compare stability (agreement %) against
-   baselines: max-softmax confidence, predictive entropy, expected calibration
-   error. Evaluate whether low-stability predictions correlate with wrong
-   predictions, especially for melanoma (`mel`).
-2. **Multi-Image Disagreement** — evaluate whether significant disagreement
-   across photos of the same lesion is a useful referral signal (i.e., a
-   proxy for "this case is uncertain; refer to a dermatologist").
-
-Suggested metrics: **sensitivity, specificity, macro-F1, confusion matrix,
-expected calibration error (ECE), and Brier score**. Use patient- or
-lesion-level separation where the dataset provides identifiers — prevent
-data leakage between training and evaluation splits.
-
-Do not fabricate experimental results. Run the evaluation on real data and
-report the numbers honestly, even if they are unfavourable.
-
----
-
-## Security & privacy summary
-
-- HTTPS enforced in production; HSTS, secure cookies, X-Frame-Options DENY.
-- CSRF on every form & state-changing request (including the chatbot endpoint).
-- File type + size validation on every upload.
-- Rate limiting on the chatbot endpoint (`10/m` per IP by default).
-- API keys are read from environment variables — never exposed to the frontend.
-- **Anonymous chatbot path never calls Gemini** — only the 7 predefined FAQs
-  are returned, so anonymous traffic cannot drive paid API usage or load the
-  Gemini client.
-- **Authenticated chatbot path** builds context only from the authenticated
-  request; browser-supplied context / history is never trusted.
-- **Staff chatbot path** receives aggregate-only totals (no usernames, no
-  individual records); requests for individual data are refused without calling
-  Gemini.
-- **Tracker records** are scoped to the requesting user (`get_object_or_404`
-  with `user=request.user` filter) — there is no way to enumerate another
-  user's records.
-- **Prediction records** are scoped by `user` (authenticated) or `session_key`
-  (anonymous). Cross-user / cross-session access returns 403. PDF download,
-  delete, and JSON export all use the same scope.
-- Image bytes are never sent to Gemini.
-- `.env` is gitignored; `.env.example` contains placeholder values only.
-
----
-
-## Acknowledgements
-
-- **HAM10000** dataset: Tschandl, P., Rosendahl, C. & Kittler, H. (2018).
-  _Scientific Data_. The class names and categories used in this project
-  match the HAM10000 documentation.
-- **Google Gemini** for the AI assistant SDK.
-- **Bootstrap 5**, **Lucide icons**, **ReportLab**, **OpenCV**, **Pillow**.
-
----
-
-## License
-
-This project is provided as-is for educational purposes. It is NOT a medical
-device. Use of the HAM10000 dataset, the Gemini API, and any other third-party
-asset is subject to the respective upstream licenses.
+- **Not a medical device.** Every prediction is unverified and may be
+  wrong. Consult a qualified dermatologist for any medical concern.
+- **HAM10000 classes only.** The model recognizes 7 lesion types. It
+  cannot identify conditions outside this set.
+- **Dermoscopic images preferred.** Phone photos work but may produce
+  less reliable results. The Smart Photo Guide helps assess quality.
+- **No real OOD detector.** The wrong-input service uses a coarse
+  skin-tone ratio heuristic. A real out-of-distribution detector is not
+  shipped.
+- **Free-tier rate limits.** Groq and OpenRouter free tiers have strict
+  rate limits (20 RPM, 50-1000 RPD). For higher traffic, use paid models
+  or run your own inference server with `ML_MODEL_BACKEND=api`.
+- **Conversation persistence is per-user.** Anonymous visitors do not
+  get server-side conversation history (they use sessionStorage in the
+  browser). Only authenticated users get `ChatConversation` rows.

@@ -468,11 +468,24 @@ function initializeLanguageToggle() {
     if (raw.indexOf("This photo doesn't look like a typical skin lesion.") === 0) {
       return window.DERMA.t('server.not_skin', 'এই ছবিটি সাধারণ ত্বকের দাগের মতো দেখাচ্ছে না। মডেলের ফলাফল নির্ভরযোগ্য নাও হতে পারে।');
     }
+    if (raw.indexOf('This image was classified as non-skin.') === 0) {
+      return window.DERMA.t('server.non_skin', 'এই ছবিটি ত্বকের ছবি হিসেবে শনাক্ত করা যায়নি। চালিয়ে যেতে অনুগ্রহ করে ত্বকের কোনো ক্ষত বা দাগের একটি পরিষ্কার ছবি আপলোড করুন।');
+    }
     if (raw.indexOf('File is corrupt or not a valid image.') === 0) {
       return window.DERMA.t('server.corrupt_image', 'ফাইলটি নষ্ট অথবা বৈধ ছবি নয়।');
     }
     return raw;
   }
+
+  // Expose the server-message translator so page-specific inline scripts
+  // (e.g. photo_guide transfer-error handler) can translate messages they
+  // extract from fetched HTML responses without having to duplicate the
+  // known-message table.
+  window.DERMA.tServer = function (raw) {
+    if (!raw) return raw;
+    var lang = (window.DERMA && window.DERMA.language) || 'en';
+    return lang === 'bn' ? translateServerMessage(String(raw).trim()) : String(raw).trim();
+  };
 
   function applyLang(lang) {
     lang = lang === 'bn' ? 'bn' : 'en';

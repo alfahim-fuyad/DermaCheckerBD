@@ -347,9 +347,19 @@
 
     function showTransferError(message) {
       if (!transferError) return;
-      transferError.textContent = message || (window.DERMA && window.DERMA.t
-        ? window.DERMA.t('pg.transfer_error', 'The image could not be prepared for prediction. Please try uploading it again.')
-        : 'The image could not be prepared for prediction. Please try uploading it again.');
+      if (message) {
+        // Translate the server-rendered message (e.g. the non-skin error
+        // returned by the predictor endpoint) when Bengali is active.
+        // The same translateServerMessage table used for [data-i18n-server]
+        // elements is applied here via window.DERMA.tServer.
+        transferError.textContent = (window.DERMA && typeof window.DERMA.tServer === 'function')
+          ? window.DERMA.tServer(message)
+          : message;
+      } else {
+        transferError.textContent = (window.DERMA && window.DERMA.t)
+          ? window.DERMA.t('pg.transfer_error', 'The image could not be prepared for prediction. Please try uploading it again.')
+          : 'The image could not be prepared for prediction. Please try uploading it again.';
+      }
       transferError.hidden = false;
     }
 
