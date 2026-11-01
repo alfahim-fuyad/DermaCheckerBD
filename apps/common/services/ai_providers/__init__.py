@@ -36,6 +36,7 @@ from .base import (  # noqa: F401
     ProviderTimeoutError,
     ProviderServerError,
     ProviderAuthError,
+    ProviderUnavailableError,
     ProviderResult,
     ChatMessage,
 )
@@ -43,4 +44,4 @@ from .cooldown import CooldownTracker, CooldownEntry  # noqa: F401
 from .gemini_provider import GeminiProvider  # noqa: F401
 from .groq_provider import GroqProvider  # noqa: F401
 from .openrouter_provider import OpenRouterProvider  # noqa: F401
-from .fallback import FallbackChatService, FallbackResult  # noqa: F401
+from .fallback import FallbackChatService, FallbackResult, PROVIDER_REGISTRY  # noqa: F401

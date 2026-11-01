@@ -208,6 +208,22 @@ class BaseAIProvider:
         }
 
 
+def _truncate_body(body_text: str, limit: int = 300) -> str:
+    """Truncate the response body for inclusion in error messages.
+
+    Keeps the first ``limit`` characters and collapses whitespace so a
+    long HTML error page doesn't blow up the error log.
+    """
+    if not body_text:
+        return ""
+    # Collapse whitespace (many providers return pretty-printed JSON or
+    # HTML error pages that are unreadable in a single-line log entry).
+    collapsed = " ".join(body_text.split())
+    if len(collapsed) <= limit:
+        return collapsed
+    return collapsed[:limit] + "…"
+
+
 def classify_http_error(
     status_code: int,
     body_text: str = "",
@@ -217,15 +233,46 @@ def classify_http_error(
     The body text is inspected because OpenAI-compatible providers
     (Groq, OpenRouter) signal quota exhaustion with a 429 + a ``quota``
     marker in the JSON body, while a plain 429 is a windowed rate limit.
+
+    The body text is ALSO included (truncated) in every error message so
+    the operator can see WHY the provider rejected the request — e.g.
+    "Model not found", "Invalid API key", "Context length exceeded".
     """
     body_upper = (body_text or "").upper()
+    body_snippet = _truncate_body(body_text)
+
+    # Detect "model not found" / "model does not exist" specifically —
+    # this is a configuration error, not a transient failure. We still
+    # let the cascade try the next provider, but we don't cooldown the
+    # failing provider because retrying won't help until the operator
+    # fixes the model name.
+    model_not_found_markers = (
+        "MODEL NOT FOUND",
+        "MODEL DOES NOT EXIST",
+        "MODEL_NOT_FOUND",
+        "NOT FOUND FOR ENTITY",
+        "MODELS API GOT CALLED WITH",
+        "DOES NOT EXIST OR IS NOT ACCESSIBLE",
+        "MODEL IS DEPRECATED",
+    )
+
+    def _make_model_not_found_error(message: str) -> ProviderError:
+        err = ProviderError(message, status_code=status_code)
+        err.retryable = False  # config error — don't cooldown
+        err.code = "model_not_found"
+        return err
+
     if status_code in (401, 403):
+        # Auth errors — include the body so the operator can see if the
+        # key is invalid vs. lacks permission for a specific model.
         return ProviderAuthError(
-            f"{status_code} from provider", status_code=status_code
+            f"{status_code} auth error from provider: {body_snippet}",
+            status_code=status_code,
         )
     if status_code == 402:
         return QuotaExhaustedError(
-            "402 payment required from provider", status_code=status_code
+            f"402 payment required from provider: {body_snippet}",
+            status_code=status_code,
         )
     if status_code == 429:
         quota_markers = (
@@ -237,25 +284,35 @@ def classify_http_error(
         )
         if any(marker in body_upper for marker in quota_markers):
             return QuotaExhaustedError(
-                "429 quota exhausted from provider", status_code=status_code
+                f"429 quota exhausted from provider: {body_snippet}",
+                status_code=status_code,
             )
         return RateLimitError(
-            "429 rate limit from provider", status_code=status_code
+            f"429 rate limit from provider: {body_snippet}",
+            status_code=status_code,
         )
     if status_code in (500, 502, 503, 504):
         return ProviderServerError(
-            f"{status_code} server error from provider", status_code=status_code
+            f"{status_code} server error from provider: {body_snippet}",
+            status_code=status_code,
         )
     if 400 <= status_code < 500:
-        # Other 4xx — bad request, malformed payload, content policy.
-        # Not retryable on this provider, but the cascade may still try
-        # the next provider because the next provider may accept it.
+        # Check for model-not-found before the generic client_error.
+        if any(marker in body_upper for marker in model_not_found_markers):
+            return _make_model_not_found_error(
+                f"{status_code} model not found from provider: {body_snippet}"
+            )
+        # Other 4xx — bad request, malformed payload, content policy,
+        # context length exceeded, etc. Include the body so the operator
+        # can see exactly what the provider complained about.
         err = ProviderError(
-            f"{status_code} client error from provider", status_code=status_code
+            f"{status_code} client error from provider: {body_snippet}",
+            status_code=status_code,
         )
         err.retryable = True
         err.code = "client_error"
         return err
     return ProviderError(
-        f"{status_code} unexpected status from provider", status_code=status_code
+        f"{status_code} unexpected status from provider: {body_snippet}",
+        status_code=status_code,
     )

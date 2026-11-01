@@ -13,4 +13,6 @@ urlpatterns = [
     # Authenticated-only provider health and staff-only usage logs.
     path("providers/", views.providers_view, name="providers"),
     path("usage/", views.usage_view, name="usage"),
+    # Staff-only live diagnostic: tests each provider with a tiny prompt.
+    path("diagnose/", views.diagnose_view, name="diagnose"),
 ]

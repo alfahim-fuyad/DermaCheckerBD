@@ -552,3 +552,158 @@ def usage_view(request):
             "success_rate": round(ok / total, 3) if total else None,
         }
     return _json_response({"recent": rows, "summary": summary})
+
+
+# --------------------------------------------------------------------------- #
+# Staff-only diagnostic endpoint: live-test each provider
+# --------------------------------------------------------------------------- #
+@require_GET
+@login_required
+def diagnose_view(request):
+    """Live-test each AI provider with a tiny prompt and return the result.
+
+    Restricted to staff users. Useful for diagnosing "chatbot takes very
+    long / RAM limit crossed" issues — the response shows exactly which
+    provider is failing and the full error message from the provider.
+
+    Example response::
+
+        {
+          "results": [
+            {
+              "provider": "gemini",
+              "model": "gemini-2.0-flash",
+              "configured": true,
+              "status": "ok",
+              "latency_ms": 1200,
+              "reply": "hello",
+              "error_code": "",
+              "error_message": ""
+            },
+            {
+              "provider": "groq",
+              "model": "llama-3.3-70b-versatile",
+              "configured": true,
+              "status": "fail",
+              "latency_ms": 350,
+              "reply": "",
+              "error_code": "model_not_found",
+              "error_message": "404 model not found from provider: ..."
+            }
+          ],
+          "summary": {"ok": 1, "fail": 1, "skip": 1}
+        }
+    """
+    if not _has_staff_chat_access(request.user):
+        return _json_response(
+            {"detail": "Staff access required."}, status=403,
+        )
+
+    import time as _time
+    from apps.common.services.ai_providers import (
+        ProviderError, ProviderUnavailableError,
+        PROVIDER_REGISTRY,
+    )
+
+    prompt = request.GET.get("prompt", "Reply with the single word: hello")[:200]
+    system_prompt = "You are a test assistant. Reply briefly."
+    results = []
+    order = list(getattr(settings, "CHATBOT_PROVIDER_ORDER", ["gemini", "groq", "openrouter"]))
+
+    for slug in order:
+        provider_cls = PROVIDER_REGISTRY.get(slug)
+        if not provider_cls:
+            results.append({
+                "provider": slug,
+                "model": "",
+                "configured": False,
+                "status": "skip",
+                "latency_ms": 0,
+                "reply": "",
+                "error_code": "unknown_provider",
+                "error_message": f"Unknown provider slug: {slug}",
+            })
+            continue
+
+        configured = provider_cls.is_configured()
+        if not configured:
+            results.append({
+                "provider": slug,
+                "model": provider_cls._model(),
+                "configured": False,
+                "status": "skip",
+                "latency_ms": 0,
+                "reply": "",
+                "error_code": "not_configured",
+                "error_message": "No API key set or SDK unavailable",
+            })
+            continue
+
+        started = _time.monotonic()
+        try:
+            result = provider_cls.chat(
+                system_prompt=system_prompt,
+                history=[],
+                user_message=prompt,
+                temperature=0.0,
+                max_output_tokens=50,
+                language="en",
+            )
+            elapsed = int((_time.monotonic() - started) * 1000)
+            results.append({
+                "provider": slug,
+                "model": result.model,
+                "configured": True,
+                "status": "ok",
+                "latency_ms": elapsed,
+                "reply": result.text[:200],
+                "error_code": "",
+                "error_message": "",
+                "prompt_tokens": result.prompt_tokens,
+                "completion_tokens": result.completion_tokens,
+            })
+        except ProviderUnavailableError as e:
+            elapsed = int((_time.monotonic() - started) * 1000)
+            results.append({
+                "provider": slug,
+                "model": provider_cls._model(),
+                "configured": False,
+                "status": "skip",
+                "latency_ms": elapsed,
+                "reply": "",
+                "error_code": "not_configured",
+                "error_message": str(e)[:300],
+            })
+        except ProviderError as e:
+            elapsed = int((_time.monotonic() - started) * 1000)
+            results.append({
+                "provider": slug,
+                "model": provider_cls._model(),
+                "configured": True,
+                "status": "fail",
+                "latency_ms": elapsed,
+                "reply": "",
+                "error_code": e.code,
+                "error_message": str(e)[:400],
+                "status_code": e.status_code,
+                "retryable": e.retryable,
+            })
+        except Exception as e:
+            elapsed = int((_time.monotonic() - started) * 1000)
+            results.append({
+                "provider": slug,
+                "model": provider_cls._model(),
+                "configured": True,
+                "status": "fail",
+                "latency_ms": elapsed,
+                "reply": "",
+                "error_code": "unexpected_error",
+                "error_message": f"{type(e).__name__}: {e}"[:400],
+            })
+
+    summary = {
+        "ok": sum(1 for r in results if r["status"] == "ok"),
+        "fail": sum(1 for r in results if r["status"] == "fail"),
+        "skip": sum(1 for r in results if r["status"] == "skip"),
+    }
+    return _json_response({"results": results, "summary": summary})

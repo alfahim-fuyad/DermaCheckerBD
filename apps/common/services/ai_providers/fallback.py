@@ -166,10 +166,10 @@ class FallbackChatService:
                     language=language,
                 )
             except ProviderError as e:
-                # Cooldown only on retryable errors; auth errors still
-                # trigger a cascade but the provider stays available
-                # for the next request (a 401 is a config problem the
-                # operator should fix, not a transient overload).
+                # Cooldown only on retryable errors; auth errors and
+                # model-not-found errors are config problems the
+                # operator must fix — cooling down would just hide the
+                # real issue. We still cascade to the next provider.
                 if e.retryable and not isinstance(e, ProviderUnavailableError):
                     cd = CooldownTracker.set(slug, e.code)
                     cooldowns_set.append(cd)
@@ -191,10 +191,15 @@ class FallbackChatService:
                     error_message=str(e),
                     latency_ms=0,
                 )
-                logger.info(
-                    "Provider %s failed (%s); cascading to next provider.",
+                # Log the FULL error message (including the response body
+                # snippet) so the operator can see WHY the provider failed
+                # without having to query the ChatUsageLog table.
+                logger.warning(
+                    "Provider %s failed (%s, retryable=%s): %s — cascading to next provider.",
                     slug,
                     e.code,
+                    e.retryable,
+                    str(e)[:300],
                 )
                 continue
             except Exception as e:  # pragma: no cover - defensive
